@@ -18,6 +18,10 @@ import {
 import { StatCard } from "@/components/StatCard";
 import { TradingCalendar } from "@/components/TradingCalendar";
 import { Trade, TradeEntryModal } from "@/components/TradeEntryModal";
+import {
+  FundedAccountsPanel,
+  type FundedAccount,
+} from "@/components/FundedAccountsPanel";
 
 const initialTrades: Trade[] = [];
 
@@ -40,28 +44,33 @@ const storageKeys = {
   trades: "lifeos-trading-trades",
   rules: "lifeos-trading-rules",
   rrTarget: "lifeos-trading-rr-target",
+  accounts: "lifeos-trading-accounts",
 };
 
 export function TradingJournalClient() {
   const [trades, setTrades] = useState<Trade[]>(initialTrades);
+  const [accounts, setAccounts] = useState<FundedAccount[]>([]);
   const [rules, setRules] = useState(initialRules);
   const [editingRules, setEditingRules] = useState(false);
   const [rrTarget, setRrTarget] = useState("1:2");
   const [editingRR, setEditingRR] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [isAccountsOpen, setIsAccountsOpen] = useState(false);
 
   useEffect(() => {
-    const savedTrades = localStorage.getItem(storageKeys.trades);
-    const savedRules = localStorage.getItem(storageKeys.rules);
-    const savedRrTarget = localStorage.getItem(storageKeys.rrTarget);
+  const savedTrades = localStorage.getItem(storageKeys.trades);
+  const savedRules = localStorage.getItem(storageKeys.rules);
+  const savedRrTarget = localStorage.getItem(storageKeys.rrTarget);
+  const savedAccounts = localStorage.getItem(storageKeys.accounts);
 
-    if (savedTrades) setTrades(JSON.parse(savedTrades));
-    if (savedRules) setRules(JSON.parse(savedRules));
-    if (savedRrTarget) setRrTarget(savedRrTarget);
+  if (savedTrades) setTrades(JSON.parse(savedTrades));
+  if (savedRules) setRules(JSON.parse(savedRules));
+  if (savedRrTarget) setRrTarget(savedRrTarget);
+  if (savedAccounts) setAccounts(JSON.parse(savedAccounts));
 
-    setLoaded(true);
-  }, []);
+  setLoaded(true);
+}, []);
 
   useEffect(() => {
     if (!loaded) return;
@@ -77,6 +86,22 @@ export function TradingJournalClient() {
     if (!loaded) return;
     localStorage.setItem(storageKeys.rrTarget, rrTarget);
   }, [rrTarget, loaded]);
+
+  useEffect(() => {
+  if (!loaded) return;
+
+  localStorage.setItem(storageKeys.accounts, JSON.stringify(accounts));
+}, [accounts, loaded]);
+
+function addAccount(account: FundedAccount) {
+  setAccounts((currentAccounts) => [account, ...currentAccounts]);
+}
+
+function deleteAccount(accountId: string) {
+  setAccounts((currentAccounts) =>
+    currentAccounts.filter((account) => account.id !== accountId)
+  );
+}
 
   function addTrade(trade: Trade) {
     setTrades((currentTrades) => [trade, ...currentTrades]);
@@ -306,7 +331,10 @@ const insightCards = [
           </p>
         </div>
 
-        <TradeEntryModal onAddTrade={addTrade} />
+        <TradeEntryModal
+  onAddTrade={addTrade}
+  accounts={accounts.map((account) => account.name)}
+/>
       </header>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -369,6 +397,25 @@ const insightCards = [
           );
         })}
       </div>
+
+      <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div>
+      <p className="text-sm text-white/40">Control automático</p>
+      <h3 className="mt-1 text-2xl font-bold">Cuentas fondeadas</h3>
+      <p className="mt-2 max-w-2xl text-sm text-white/40">
+        Revisa balance, colchón, drawdown EOD y progreso de tus cuentas.
+      </p>
+    </div>
+
+    <button
+      onClick={() => setIsAccountsOpen(true)}
+      className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-emerald-300"
+    >
+      Ver cuentas
+    </button>
+  </div>
+</div>
 
       <div className="mt-6">
         <TradingCalendar trades={trades} onSelectTrade={setSelectedTrade} />
@@ -436,6 +483,7 @@ const insightCards = [
                 ) : (
                   trades.map((trade) => {
                     const resultNumber = Number(trade.result);
+            
 
                     return (
                       <tr key={trade.id} className="border-t border-white/10">
@@ -569,7 +617,32 @@ const insightCards = [
           )}
         </div>
       </div>
+{isAccountsOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white/40">Trading Journal</p>
+          <h2 className="text-2xl font-bold text-white">Cuentas fondeadas</h2>
+        </div>
 
+        <button
+          onClick={() => setIsAccountsOpen(false)}
+          className="rounded-full bg-white/10 p-3 text-white/60 transition hover:bg-white/15 hover:text-white"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <FundedAccountsPanel
+        accounts={accounts}
+        trades={registeredTrades}
+        onAddAccount={addAccount}
+        onDeleteAccount={deleteAccount}
+      />
+    </div>
+  </div>
+)}
       {selectedTrade && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
