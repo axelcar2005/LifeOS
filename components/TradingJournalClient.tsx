@@ -137,6 +137,122 @@ export function TradingJournalClient() {
     registeredTrades.length > 0
       ? Math.round((winningTrades.length / registeredTrades.length) * 100)
       : 0;
+      const tradesByDate = registeredTrades.reduce<Record<string, number>>(
+  (totals, trade) => {
+    totals[trade.date] = (totals[trade.date] || 0) + Number(trade.result || 0);
+    return totals;
+  },
+  {}
+);
+
+const dailyResults = Object.entries(tradesByDate).map(([date, total]) => ({
+  date,
+  total,
+}));
+
+const bestDay =
+  dailyResults.length > 0
+    ? dailyResults.reduce((best, day) => (day.total > best.total ? day : best))
+    : null;
+
+const worstDay =
+  dailyResults.length > 0
+    ? dailyResults.reduce((worst, day) =>
+        day.total < worst.total ? day : worst
+      )
+    : null;
+
+const averagePerTrade =
+  registeredTrades.length > 0 ? totalPnL / registeredTrades.length : 0;
+
+const biggestWin =
+  registeredTrades.length > 0
+    ? registeredTrades.reduce((best, trade) =>
+        Number(trade.result) > Number(best.result) ? trade : best
+      )
+    : null;
+
+const biggestLoss =
+  registeredTrades.length > 0
+    ? registeredTrades.reduce((worst, trade) =>
+        Number(trade.result) < Number(worst.result) ? trade : worst
+      )
+    : null;
+
+function getMostRepeatedValue(field: "setup" | "emotion" | "account") {
+  const counts = new Map<string, number>();
+
+  registeredTrades.forEach((trade) => {
+    const value = trade[field]?.trim();
+
+    if (!value) return;
+
+    counts.set(value, (counts.get(value) || 0) + 1);
+  });
+
+  let mostRepeated = "—";
+  let highestCount = 0;
+
+  counts.forEach((count, value) => {
+    if (count > highestCount) {
+      highestCount = count;
+      mostRepeated = value;
+    }
+  });
+
+  return mostRepeated;
+}
+
+const insightCards = [
+  {
+    label: "Mejor día",
+    value: bestDay ? `$${bestDay.total}` : "—",
+    description: bestDay ? bestDay.date : "Sin datos",
+    color: "text-emerald-400",
+  },
+  {
+    label: "Peor día",
+    value: worstDay ? `$${worstDay.total}` : "—",
+    description: worstDay ? worstDay.date : "Sin datos",
+    color: "text-red-400",
+  },
+  {
+    label: "Promedio por trade",
+    value: registeredTrades.length > 0 ? `$${averagePerTrade.toFixed(0)}` : "—",
+    description: "Resultado promedio",
+    color: averagePerTrade >= 0 ? "text-emerald-400" : "text-red-400",
+  },
+  {
+    label: "Mayor ganancia",
+    value:
+      biggestWin && Number(biggestWin.result) > 0
+        ? `$${biggestWin.result}`
+        : "—",
+    description: biggestWin?.setup || "Sin datos",
+    color: "text-emerald-400",
+  },
+  {
+    label: "Mayor pérdida",
+    value:
+      biggestLoss && Number(biggestLoss.result) < 0
+        ? `$${biggestLoss.result}`
+        : "—",
+    description: biggestLoss?.setup || "Sin datos",
+    color: "text-red-400",
+  },
+  {
+    label: "Setup más usado",
+    value: getMostRepeatedValue("setup"),
+    description: "Según tus trades",
+    color: "text-white",
+  },
+  {
+    label: "Emoción frecuente",
+    value: getMostRepeatedValue("emotion"),
+    description: "Tu estado más repetido",
+    color: "text-blue-300",
+  },
+];
 
   const tradingStats = [
     {
@@ -257,6 +373,29 @@ export function TradingJournalClient() {
       <div className="mt-6">
         <TradingCalendar trades={trades} onSelectTrade={setSelectedTrade} />
       </div>
+      <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
+  <div className="mb-6">
+    <p className="text-sm text-white/40">Análisis del journal</p>
+    <h3 className="mt-1 text-2xl font-bold">Estadísticas clave</h3>
+  </div>
+
+  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+    {insightCards.map((card) => (
+      <div
+        key={card.label}
+        className="rounded-2xl border border-white/10 bg-black/40 p-4"
+      >
+        <p className="text-xs text-white/40">{card.label}</p>
+        <p className={`mt-2 text-xl font-bold ${card.color}`}>
+          {card.value}
+        </p>
+        <p className="mt-1 truncate text-xs text-white/35">
+          {card.description}
+        </p>
+      </div>
+    ))}
+  </div>
+</div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 xl:col-span-2">
