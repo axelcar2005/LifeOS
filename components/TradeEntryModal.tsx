@@ -1,10 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { Plus, X } from "lucide-react";
 
-export function TradeEntryModal() {
+export type Trade = {
+  id: string;
+  date: string;
+  account: string;
+  asset: string;
+  direction: string;
+  risk: string;
+  result: string;
+  setup: string;
+  emotion: string;
+  notes: string;
+  status: string;
+};
+
+type TradeEntryModalProps = {
+  onAddTrade: (trade: Trade) => void;
+};
+
+const initialForm = {
+  date: "",
+  account: "Apex PA",
+  asset: "MNQ",
+  direction: "Long",
+  risk: "",
+  result: "",
+  setup: "IFVG 5m",
+  emotion: "Disciplinado",
+  notes: "",
+};
+
+export function TradeEntryModal({ onAddTrade }: TradeEntryModalProps) {
   const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(initialForm);
+
+  function updateField(field: keyof typeof initialForm, value: string) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    onAddTrade({
+  id: `${Date.now()}-${Math.random()}`,
+  ...form,
+  status: "Registrado",
+});
+
+    setForm(initialForm);
+    setOpen(false);
+  }
 
   return (
     <>
@@ -29,6 +80,7 @@ export function TradeEntryModal() {
               </div>
 
               <button
+                type="button"
                 onClick={() => setOpen(false)}
                 className="rounded-2xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
               >
@@ -36,19 +88,26 @@ export function TradeEntryModal() {
               </button>
             </div>
 
-            <form className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm text-white/50">Fecha</label>
                   <input
                     type="date"
+                    value={form.date}
+                    onChange={(event) => updateField("date", event.target.value)}
+                    required
                     className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
                   />
                 </div>
 
                 <div>
                   <label className="mb-2 block text-sm text-white/50">Cuenta</label>
-                  <select className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400">
+                  <select
+                    value={form.account}
+                    onChange={(event) => updateField("account", event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                  >
                     <option>Apex PA</option>
                     <option>Prueba 25K</option>
                     <option>Prueba 50K</option>
@@ -58,7 +117,11 @@ export function TradeEntryModal() {
 
                 <div>
                   <label className="mb-2 block text-sm text-white/50">Activo</label>
-                  <select className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400">
+                  <select
+                    value={form.asset}
+                    onChange={(event) => updateField("asset", event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                  >
                     <option>MNQ</option>
                     <option>NQ</option>
                     <option>ES</option>
@@ -68,7 +131,11 @@ export function TradeEntryModal() {
 
                 <div>
                   <label className="mb-2 block text-sm text-white/50">Dirección</label>
-                  <select className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400">
+                  <select
+                    value={form.direction}
+                    onChange={(event) => updateField("direction", event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                  >
                     <option>Long</option>
                     <option>Short</option>
                   </select>
@@ -78,7 +145,10 @@ export function TradeEntryModal() {
                   <label className="mb-2 block text-sm text-white/50">Riesgo</label>
                   <input
                     type="number"
+                    value={form.risk}
+                    onChange={(event) => updateField("risk", event.target.value)}
                     placeholder="Ej: 250"
+                    required
                     className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
                   />
                 </div>
@@ -87,14 +157,21 @@ export function TradeEntryModal() {
                   <label className="mb-2 block text-sm text-white/50">Resultado</label>
                   <input
                     type="number"
+                    value={form.result}
+                    onChange={(event) => updateField("result", event.target.value)}
                     placeholder="Ej: 500 o -250"
+                    required
                     className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
                   />
                 </div>
 
                 <div>
                   <label className="mb-2 block text-sm text-white/50">Setup</label>
-                  <select className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400">
+                  <select
+                    value={form.setup}
+                    onChange={(event) => updateField("setup", event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                  >
                     <option>IFVG 5m</option>
                     <option>Liquidity Sweep</option>
                     <option>Break + Retest</option>
@@ -104,7 +181,11 @@ export function TradeEntryModal() {
 
                 <div>
                   <label className="mb-2 block text-sm text-white/50">Emoción</label>
-                  <select className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400">
+                  <select
+                    value={form.emotion}
+                    onChange={(event) => updateField("emotion", event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                  >
                     <option>Disciplinado</option>
                     <option>Ansioso</option>
                     <option>Con miedo</option>
@@ -117,6 +198,8 @@ export function TradeEntryModal() {
                 <label className="mb-2 block text-sm text-white/50">Notas del trade</label>
                 <textarea
                   rows={4}
+                  value={form.notes}
+                  onChange={(event) => updateField("notes", event.target.value)}
                   placeholder="¿Por qué entraste? ¿Respetaste el plan? ¿Qué mejorarías?"
                   className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
                 />
@@ -132,7 +215,7 @@ export function TradeEntryModal() {
                 </button>
 
                 <button
-                  type="button"
+                  type="submit"
                   className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-black transition hover:bg-emerald-300"
                 >
                   Guardar operación
