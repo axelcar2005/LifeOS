@@ -1,3 +1,8 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import {
   CalendarDays,
   Dumbbell,
@@ -10,16 +15,18 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { name: "Dashboard", icon: LayoutDashboard, active: true },
-  { name: "Trading", icon: LineChart },
-  { name: "Finanzas", icon: Wallet },
-  { name: "Salud", icon: Dumbbell },
-  { name: "Nutrición", icon: Utensils },
-  { name: "Calendario", icon: CalendarDays },
-  { name: "Objetivos", icon: Target },
+  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Trading", href: "/trading", icon: LineChart },
+  { name: "Finanzas", href: "/finanzas", icon: Wallet },
+  { name: "Salud", href: "/salud", icon: Dumbbell },
+  { name: "Nutrición", href: "/nutricion", icon: Utensils },
+  { name: "Calendario", href: "/calendario", icon: CalendarDays },
+  { name: "Objetivos", href: "/objetivos", icon: Target },
 ];
 
 export function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="hidden w-72 border-r border-white/10 bg-white/[0.02] p-6 lg:block">
       <div className="mb-10">
@@ -38,20 +45,21 @@ export function Sidebar() {
       <nav className="space-y-2 text-sm">
         {menuItems.map((item) => {
           const Icon = item.icon;
+          const isActive = pathname === item.href;
 
           return (
-            <a
+            <Link
               key={item.name}
-              href="#"
+              href={item.href}
               className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition ${
-                item.active
+                isActive
                   ? "bg-white text-black"
                   : "text-white/55 hover:bg-white/5 hover:text-white"
               }`}
             >
               <Icon size={18} />
               <span className="font-medium">{item.name}</span>
-            </a>
+            </Link>
           );
         })}
       </nav>
