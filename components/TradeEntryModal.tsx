@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { ChangeEvent, ClipboardEvent, FormEvent, useState } from "react";
+import { ImagePlus, Plus, X } from "lucide-react";
 
 export type Trade = {
   id: string;
@@ -15,6 +15,7 @@ export type Trade = {
   emotion: string;
   notes: string;
   status: string;
+  image?: string;
 };
 
 type TradeEntryModalProps = {
@@ -23,14 +24,15 @@ type TradeEntryModalProps = {
 
 const initialForm = {
   date: "",
-  account: "Apex PA",
+  account: "",
   asset: "MNQ",
   direction: "Long",
   risk: "",
   result: "",
-  setup: "IFVG 5m",
+  setup: "",
   emotion: "Disciplinado",
   notes: "",
+  image: "",
 };
 
 export function TradeEntryModal({ onAddTrade }: TradeEntryModalProps) {
@@ -44,14 +46,45 @@ export function TradeEntryModal({ onAddTrade }: TradeEntryModalProps) {
     }));
   }
 
+  function readImageFile(file: File) {
+    if (!file.type.startsWith("image/")) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      updateField("image", String(reader.result));
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function handlePaste(event: ClipboardEvent<HTMLDivElement>) {
+    const items = Array.from(event.clipboardData.items);
+    const imageItem = items.find((item) => item.type.startsWith("image/"));
+    const file = imageItem?.getAsFile();
+
+    if (file) {
+      event.preventDefault();
+      readImageFile(file);
+    }
+  }
+
+  function handleImageUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (file) {
+      readImageFile(file);
+    }
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     onAddTrade({
-  id: `${Date.now()}-${Math.random()}`,
-  ...form,
-  status: "Registrado",
-});
+      id: `${Date.now()}-${Math.random()}`,
+      ...form,
+      status: "Registrado",
+    });
 
     setForm(initialForm);
     setOpen(false);
@@ -69,13 +102,13 @@ export function TradeEntryModal({ onAddTrade }: TradeEntryModalProps) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm text-white/40">Trading Journal</p>
                 <h2 className="mt-1 text-2xl font-bold">Registrar operación</h2>
                 <p className="mt-2 text-sm text-white/40">
-                  Guarda los datos principales de tu trade para analizar tu rendimiento.
+                  Guarda tu trade con setup, emoción, notas y captura.
                 </p>
               </div>
 
@@ -102,18 +135,16 @@ export function TradeEntryModal({ onAddTrade }: TradeEntryModalProps) {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm text-white/50">Cuenta</label>
-                  <select
-                    value={form.account}
-                    onChange={(event) => updateField("account", event.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
-                  >
-                    <option>Apex PA</option>
-                    <option>Prueba 25K</option>
-                    <option>Prueba 50K</option>
-                    <option>Cuenta personal</option>
-                  </select>
-                </div>
+  <label className="mb-2 block text-sm text-white/50">Cuenta</label>
+  <input
+    type="text"
+    value={form.account}
+    onChange={(event) => updateField("account", event.target.value)}
+    placeholder="Ej: Topstep 50K, Apex PA 25K, Lucid prueba 50K"
+    required
+    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+  />
+</div>
 
                 <div>
                   <label className="mb-2 block text-sm text-white/50">Activo</label>
@@ -125,6 +156,8 @@ export function TradeEntryModal({ onAddTrade }: TradeEntryModalProps) {
                     <option>MNQ</option>
                     <option>NQ</option>
                     <option>ES</option>
+                    <option>MES</option>
+                    <option>YM</option>
                     <option>Otro</option>
                   </select>
                 </div>
@@ -167,16 +200,14 @@ export function TradeEntryModal({ onAddTrade }: TradeEntryModalProps) {
 
                 <div>
                   <label className="mb-2 block text-sm text-white/50">Setup</label>
-                  <select
+                  <input
+                    type="text"
                     value={form.setup}
                     onChange={(event) => updateField("setup", event.target.value)}
+                    placeholder="Ej: IFVG 5m + liquidez"
+                    required
                     className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
-                  >
-                    <option>IFVG 5m</option>
-                    <option>Liquidity Sweep</option>
-                    <option>Break + Retest</option>
-                    <option>Otro</option>
-                  </select>
+                  />
                 </div>
 
                 <div>
@@ -190,12 +221,68 @@ export function TradeEntryModal({ onAddTrade }: TradeEntryModalProps) {
                     <option>Ansioso</option>
                     <option>Con miedo</option>
                     <option>Impulsivo</option>
+                    <option>Confiado</option>
+                    <option>Cansado</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm text-white/50">Notas del trade</label>
+                <label className="mb-2 block text-sm text-white/50">
+                  Imagen del trade
+                </label>
+
+                <div
+                  tabIndex={0}
+                  onPaste={handlePaste}
+                  className="rounded-2xl border border-dashed border-white/15 bg-black/40 p-4 outline-none transition focus:border-emerald-400"
+                >
+                  {form.image ? (
+                    <div className="space-y-3">
+                      <img
+                        src={form.image}
+                        alt="Captura del trade"
+                        className="max-h-72 w-full rounded-2xl object-contain"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => updateField("image", "")}
+                        className="rounded-xl bg-red-400/10 px-3 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-400/20"
+                      >
+                        Quitar imagen
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white/50">
+                        <ImagePlus size={22} />
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-semibold text-white/70">
+                          Pega aquí tu captura con Ctrl + V
+                        </p>
+                        <p className="mt-1 text-xs text-white/40">
+                          También puedes subir una imagen desde tu PC.
+                        </p>
+                      </div>
+
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="text-xs text-white/50"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm text-white/50">
+                  Notas del trade
+                </label>
                 <textarea
                   rows={4}
                   value={form.notes}

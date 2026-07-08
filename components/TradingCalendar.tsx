@@ -7,6 +7,7 @@ import type { Trade } from "@/components/TradeEntryModal";
 
 type TradingCalendarProps = {
   trades: Trade[];
+  onSelectTrade?: (trade: Trade) => void;
 };
 
 const weekDays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -18,7 +19,7 @@ function formatDate(year: number, month: number, day: number) {
   )}`;
 }
 
-export function TradingCalendar({ trades }: TradingCalendarProps) {
+export function TradingCalendar({ trades, onSelectTrade }: TradingCalendarProps) {
   const today = new Date();
 
   const [calendarDate, setCalendarDate] = useState(
@@ -111,6 +112,13 @@ export function TradingCalendar({ trades }: TradingCalendarProps) {
           const dayTrades = trades.filter(
             (trade) => trade.date === date && trade.status === "Registrado"
           );
+          const latestTrade = dayTrades[0];
+          const dayDirection =
+  dayTrades.length > 1
+    ? dayTrades.every((trade) => trade.direction === dayTrades[0].direction)
+      ? dayTrades[0].direction
+      : "Mixto"
+    : latestTrade?.direction;
 
           const dailyPnL = dayTrades.reduce(
             (total, trade) => total + Number(trade.result || 0),
@@ -138,34 +146,35 @@ export function TradingCalendar({ trades }: TradingCalendarProps) {
 
           return (
             <div
-              key={date}
-              className={`min-h-24 rounded-2xl border p-3 transition hover:bg-white/[0.06] ${bgClass} ${
-                isToday ? "ring-1 ring-white/30" : ""
-              }`}
-            >
+  key={date}
+  onClick={() => {
+    if (latestTrade) {
+      onSelectTrade?.(latestTrade);
+    }
+  }}
+  className={`min-h-24 rounded-2xl border p-3 transition hover:bg-white/[0.06] ${bgClass} ${
+    isToday ? "ring-1 ring-white/30" : ""
+  } ${latestTrade ? "cursor-pointer" : ""}`}
+>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-white/70">
                   {day}
                 </span>
 
-                {dayTrades.length > 0 && (
-                  <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-white/50">
-                    {dayTrades.length} trade{dayTrades.length > 1 ? "s" : ""}
-                  </span>
-                )}
+            
               </div>
 
               <div className="mt-5">
-                <p className={`text-sm font-bold ${pnlClass}`}>
-                  {dailyPnL !== 0 ? `$${dailyPnL}` : "—"}
-                </p>
+  <p className={`text-sm font-bold ${pnlClass}`}>
+    {dailyPnL !== 0 ? `$${dailyPnL}` : "—"}
+  </p>
 
-                {dayTrades.length > 0 && (
-                  <p className="mt-1 truncate text-xs text-white/40">
-                    {dayTrades[0].setup}
-                  </p>
-                )}
-              </div>
+  {dayDirection && (
+    <p className="mt-1 text-xs font-medium text-white/40">
+      {dayDirection}
+    </p>
+  )}
+</div>
             </div>
           );
         })}
