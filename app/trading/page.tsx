@@ -1,7 +1,8 @@
-import { BarChart3, CalendarDays, CircleDollarSign, Plus, Target, TrendingUp } from "lucide-react";
+import { BarChart3, CalendarDays, CircleDollarSign, Target, TrendingUp } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { StatCard } from "@/components/StatCard";
+import { TradeEntryModal } from "@/components/TradeEntryModal";
 
 const tradingStats = [
   {
@@ -80,10 +81,7 @@ export default function TradingPage() {
           </p>
         </div>
 
-        <button className="flex w-fit items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90">
-          <Plus size={18} />
-          Nueva operación
-        </button>
+        <TradeEntryModal />
       </header>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
