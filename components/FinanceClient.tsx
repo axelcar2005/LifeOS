@@ -1,0 +1,259 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  PiggyBank,
+  Trash2,
+  Wallet,
+} from "lucide-react";
+import {
+  FinanceEntryModal,
+  type FinanceMovement,
+} from "@/components/FinanceEntryModal";
+import { FinanceGoalsPanel } from "@/components/FinanceGoalsPanel";
+
+const storageKey = "lifeos-finance-movements";
+
+function formatMoney(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  }).format(Number.isFinite(value) ? value : 0);
+}
+
+function getCurrentMonth() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function parseAmount(value: string) {
+  const numberValue = Number(value || 0);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
+export function FinanceClient() {
+  const [movements, setMovements] = useState<FinanceMovement[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const savedMovements = localStorage.getItem(storageKey);
+
+    if (savedMovements) {
+      setMovements(JSON.parse(savedMovements));
+    }
+
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+
+    localStorage.setItem(storageKey, JSON.stringify(movements));
+  }, [movements, loaded]);
+
+  const currentMonth = getCurrentMonth();
+
+  const monthlyMovements = movements.filter((movement) =>
+    movement.date.startsWith(currentMonth)
+  );
+
+  const monthlyIncome = monthlyMovements
+    .filter((movement) => movement.type === "Ingreso")
+    .reduce((total, movement) => total + parseAmount(movement.amount), 0);
+
+  const monthlyExpenses = monthlyMovements
+    .filter((movement) => movement.type === "Gasto")
+    .reduce((total, movement) => total + parseAmount(movement.amount), 0);
+
+  const monthlySavings = monthlyMovements
+    .filter(
+      (movement) =>
+        movement.type === "Ahorro" || movement.type === "Inversión"
+    )
+    .reduce((total, movement) => total + parseAmount(movement.amount), 0);
+
+  const availableMoney = monthlyIncome - monthlyExpenses - monthlySavings;
+
+  const summaryCards = [
+    {
+      title: "Ingresos del mes",
+      value: formatMoney(monthlyIncome),
+      description: "Dinero que entró este mes.",
+      icon: ArrowUpRight,
+      color: "text-emerald-400",
+    },
+    {
+      title: "Gastos del mes",
+      value: formatMoney(monthlyExpenses),
+      description: "Dinero gastado este mes.",
+      icon: ArrowDownRight,
+      color: "text-red-400",
+    },
+    {
+      title: "Ahorro / inversión",
+      value: formatMoney(monthlySavings),
+      description: "Dinero separado para crecer.",
+      icon: PiggyBank,
+      color: "text-blue-300",
+    },
+    {
+      title: "Disponible",
+      value: formatMoney(availableMoney),
+      description: "Ingreso menos gastos y ahorro.",
+      icon: Wallet,
+      color: availableMoney >= 0 ? "text-white" : "text-red-400",
+    },
+  ];
+
+  function addMovement(movement: FinanceMovement) {
+    setMovements((currentMovements) => [movement, ...currentMovements]);
+  }
+
+  function deleteMovement(movementId: string) {
+    setMovements((currentMovements) =>
+      currentMovements.filter((movement) => movement.id !== movementId)
+    );
+  }
+
+  function getAmountColor(type: string) {
+    if (type === "Ingreso") return "text-emerald-400";
+    if (type === "Gasto") return "text-red-400";
+    if (type === "Ahorro") return "text-blue-300";
+    return "text-yellow-300";
+  }
+
+  function getAmountPrefix(type: string) {
+    if (type === "Ingreso") return "+";
+    return "-";
+  }
+
+  return (
+    <div>
+      <header className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-white/60">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            Módulo Finanzas
+          </div>
+
+          <p className="text-sm text-white/40">Control mensual</p>
+
+          <h1 className="mt-2 max-w-3xl text-4xl font-bold tracking-tight lg:text-5xl">
+            Finanzas
+          </h1>
+
+          <p className="mt-4 max-w-2xl text-white/50">
+            Controla ingresos, gastos, ahorro, inversión y dinero disponible.
+          </p>
+        </div>
+
+        <FinanceEntryModal onAddMovement={addMovement} />
+      </header>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {summaryCards.map((card) => {
+          const Icon = card.icon;
+
+          return (
+            <div
+              key={card.title}
+              className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 transition hover:-translate-y-1 hover:bg-white/[0.05]"
+            >
+              <div className="mb-5 flex items-center justify-between">
+                <p className="text-sm text-white/40">{card.title}</p>
+                <div className="rounded-full bg-white/10 p-3">
+                  <Icon className={`h-5 w-5 ${card.color}`} />
+                </div>
+              </div>
+
+              <p className={`text-3xl font-bold ${card.color}`}>
+                {card.value}
+              </p>
+
+              <p className="mt-4 text-sm leading-6 text-white/40">
+                {card.description}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      <FinanceGoalsPanel movements={movements} onAddMovement={addMovement} />
+
+      <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
+        <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-sm text-white/40">Registro financiero</p>
+            <h2 className="mt-1 text-2xl font-bold">Últimos movimientos</h2>
+          </div>
+
+          <p className="text-sm text-white/40">
+            {monthlyMovements.length} movimientos este mes
+          </p>
+        </div>
+
+        {movements.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-white/10 bg-black/30 p-8 text-center">
+            <p className="text-sm font-semibold text-white">
+              Todavía no tienes movimientos registrados.
+            </p>
+            <p className="mt-2 text-sm text-white/40">
+              Agrega tu primer gasto, ingreso, ahorro o inversión.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-white/10">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-white/[0.04] text-white/40">
+                <tr>
+                  <th className="px-4 py-4">Fecha</th>
+                  <th className="px-4 py-4">Tipo</th>
+                  <th className="px-4 py-4">Categoría</th>
+                  <th className="px-4 py-4">Método</th>
+                  <th className="px-4 py-4">Monto</th>
+                  <th className="px-4 py-4">Nota</th>
+                  <th className="px-4 py-4 text-right">Acción</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {movements.map((movement) => (
+                  <tr
+                    key={movement.id}
+                    className="border-t border-white/10 text-white/70"
+                  >
+                    <td className="px-4 py-4">{movement.date}</td>
+                    <td className="px-4 py-4">{movement.type}</td>
+                    <td className="px-4 py-4">{movement.category}</td>
+                    <td className="px-4 py-4">{movement.method}</td>
+                    <td
+                      className={`px-4 py-4 font-bold ${getAmountColor(
+                        movement.type
+                      )}`}
+                    >
+                      {getAmountPrefix(movement.type)}
+                      {formatMoney(parseAmount(movement.amount))}
+                    </td>
+                    <td className="max-w-xs truncate px-4 py-4 text-white/50">
+                      {movement.note || "—"}
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <button
+                        onClick={() => deleteMovement(movement.id)}
+                        className="rounded-full border border-white/10 p-2 text-white/40 transition hover:border-red-400/40 hover:text-red-300"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
