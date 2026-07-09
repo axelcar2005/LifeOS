@@ -33,6 +33,33 @@ function parseAmount(value: string) {
   return Number.isFinite(numberValue) ? numberValue : 0;
 }
 
+function getTopCategory(movements: FinanceMovement[], type: string) {
+  const totals = movements
+    .filter((movement) => movement.type === type)
+    .reduce<Record<string, number>>((acc, movement) => {
+      const category = movement.category || "Sin categoría";
+
+      acc[category] = (acc[category] || 0) + parseAmount(movement.amount);
+
+      return acc;
+    }, {});
+
+  const sortedCategories = Object.entries(totals).sort(
+    ([, amountA], [, amountB]) => amountB - amountA
+  );
+
+  if (sortedCategories.length === 0) {
+    return {
+      category: "—",
+      amount: 0,
+    };
+  }
+
+  return {
+    category: sortedCategories[0][0],
+    amount: sortedCategories[0][1],
+  };
+}
 export function FinanceClient() {
   const [movements, setMovements] = useState<FinanceMovement[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -75,7 +102,21 @@ export function FinanceClient() {
     .reduce((total, movement) => total + parseAmount(movement.amount), 0);
 
   const availableMoney = monthlyIncome - monthlyExpenses - monthlySavings;
+const monthlyBalance = monthlyIncome - monthlyExpenses;
+const savingsRate =
+  monthlyIncome > 0 ? Math.round((monthlySavings / monthlyIncome) * 100) : 0;
+const expenseRate =
+  monthlyIncome > 0 ? Math.round((monthlyExpenses / monthlyIncome) * 100) : 0;
 
+const topExpenseCategory = getTopCategory(monthlyMovements, "Gasto");
+const topIncomeCategory = getTopCategory(monthlyMovements, "Ingreso");
+
+const reportMessage =
+  monthlyIncome === 0
+    ? "Todavía no hay ingresos registrados este mes."
+    : availableMoney >= 0
+    ? "Vas con margen positivo este mes. Sigue cuidando tus gastos y aportes."
+    : "Este mes estás gastando o separando más de lo que ingresó. Revisa tus movimientos.";
   const summaryCards = [
     {
       title: "Ingresos del mes",
@@ -179,7 +220,71 @@ export function FinanceClient() {
           );
         })}
       </div>
+<section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
+  <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+    <div>
+      <p className="text-sm text-white/40">Resumen automático</p>
+      <h2 className="mt-1 text-2xl font-bold">Reporte mensual</h2>
+      <p className="mt-2 text-sm text-white/40">
+        Un resumen rápido de cómo va tu dinero este mes.
+      </p>
+    </div>
 
+    <span className="rounded-full border border-white/10 bg-black/40 px-4 py-2 text-xs font-semibold text-white/50">
+      {monthlyMovements.length} movimientos
+    </span>
+  </div>
+
+  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
+      <p className="text-xs text-white/40">Balance del mes</p>
+      <p
+        className={`mt-2 text-2xl font-bold ${
+          monthlyBalance >= 0 ? "text-emerald-400" : "text-red-400"
+        }`}
+      >
+        {formatMoney(monthlyBalance)}
+      </p>
+      <p className="mt-2 text-xs text-white/40">
+        Ingresos menos gastos, sin contar ahorro.
+      </p>
+    </div>
+
+    <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
+      <p className="text-xs text-white/40">Tasa de ahorro</p>
+      <p className="mt-2 text-2xl font-bold text-blue-300">
+        {savingsRate}%
+      </p>
+      <p className="mt-2 text-xs text-white/40">
+        También gastaste el {expenseRate}% de tus ingresos.
+      </p>
+    </div>
+
+    <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
+      <p className="text-xs text-white/40">Mayor gasto</p>
+      <p className="mt-2 text-2xl font-bold text-red-400">
+        {topExpenseCategory.category}
+      </p>
+      <p className="mt-2 text-xs text-white/40">
+        {formatMoney(topExpenseCategory.amount)} este mes.
+      </p>
+    </div>
+
+    <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
+      <p className="text-xs text-white/40">Mayor ingreso</p>
+      <p className="mt-2 text-2xl font-bold text-emerald-400">
+        {topIncomeCategory.category}
+      </p>
+      <p className="mt-2 text-xs text-white/40">
+        {formatMoney(topIncomeCategory.amount)} este mes.
+      </p>
+    </div>
+  </div>
+
+  <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 p-4">
+    <p className="text-sm text-white/60">{reportMessage}</p>
+  </div>
+</section>
       <FinanceGoalsPanel movements={movements} onAddMovement={addMovement} />
 
       <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
