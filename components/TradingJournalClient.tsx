@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import html2canvas from "html2canvas";
 import {
   BarChart3,
@@ -11,9 +11,11 @@ import {
   ImageIcon,
   Pencil,
   Save,
+  Search,
   Target,
   Trash2,
   TrendingUp,
+  Upload,
   X,
 } from "lucide-react";
 
@@ -48,6 +50,7 @@ const storageKeys = {
   rrTarget: "lifeos-trading-rr-target",
   accounts: "lifeos-trading-accounts",
 };
+
 function createDateKey(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -87,6 +90,7 @@ function sanitizeFileName(value: string) {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 }
+
 function getExportColor(color: string) {
   if (color.startsWith("#")) return color;
 
@@ -122,8 +126,6 @@ function getWeekCalendarDays(startDate: string) {
 
 function getMonthCalendarDays(monthKey: string) {
   const [year, month] = monthKey.split("-").map(Number);
-  const monthDate = new Date(year, month - 1, 1);
-
   const firstDayOfMonth = new Date(year, month - 1, 1);
   const lastDayOfMonth = new Date(year, month, 0);
 
@@ -174,6 +176,27 @@ function getMonthCalendarDays(monthKey: string) {
   return days;
 }
 
+function getUniqueValues(trades: Trade[], field: keyof Trade) {
+  return Array.from(
+    new Set(
+      trades
+        .map((trade) => String(trade[field] || "").trim())
+        .filter(Boolean)
+    )
+  ).sort();
+}
+
+function getDirectionLabel(tradeList: Trade[]) {
+  const uniqueDirections = [
+    ...new Set(tradeList.map((trade) => trade.direction).filter(Boolean)),
+  ];
+
+  if (tradeList.length === 0) return "Sin trades";
+  if (uniqueDirections.length === 1) return uniqueDirections[0];
+
+  return "Mixto";
+}
+
 export function TradingJournalClient() {
   const [trades, setTrades] = useState<Trade[]>(initialTrades);
   const [accounts, setAccounts] = useState<FundedAccount[]>([]);
@@ -183,24 +206,37 @@ export function TradingJournalClient() {
   const [editingRR, setEditingRR] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   const [isAccountsOpen, setIsAccountsOpen] = useState(false);
+
+  const [filters, setFilters] = useState({
+    account: "Todos",
+    asset: "Todos",
+    direction: "Todos",
+    result: "Todos",
+    setup: "Todos",
+    emotion: "Todos",
+    month: "Todos",
+  });
+
   const selectedTradeExportRef = useRef<HTMLDivElement | null>(null);
+  const socialPostExportRef = useRef<HTMLDivElement | null>(null);
   const weeklyReportExportRef = useRef<HTMLDivElement | null>(null);
-const monthlyReportExportRef = useRef<HTMLDivElement | null>(null);
+  const monthlyReportExportRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-  const savedTrades = localStorage.getItem(storageKeys.trades);
-  const savedRules = localStorage.getItem(storageKeys.rules);
-  const savedRrTarget = localStorage.getItem(storageKeys.rrTarget);
-  const savedAccounts = localStorage.getItem(storageKeys.accounts);
+    const savedTrades = localStorage.getItem(storageKeys.trades);
+    const savedRules = localStorage.getItem(storageKeys.rules);
+    const savedRrTarget = localStorage.getItem(storageKeys.rrTarget);
+    const savedAccounts = localStorage.getItem(storageKeys.accounts);
 
-  if (savedTrades) setTrades(JSON.parse(savedTrades));
-  if (savedRules) setRules(JSON.parse(savedRules));
-  if (savedRrTarget) setRrTarget(savedRrTarget);
-  if (savedAccounts) setAccounts(JSON.parse(savedAccounts));
+    if (savedTrades) setTrades(JSON.parse(savedTrades));
+    if (savedRules) setRules(JSON.parse(savedRules));
+    if (savedRrTarget) setRrTarget(savedRrTarget);
+    if (savedAccounts) setAccounts(JSON.parse(savedAccounts));
 
-  setLoaded(true);
-}, []);
+    setLoaded(true);
+  }, []);
 
   useEffect(() => {
     if (!loaded) return;
@@ -218,20 +254,19 @@ const monthlyReportExportRef = useRef<HTMLDivElement | null>(null);
   }, [rrTarget, loaded]);
 
   useEffect(() => {
-  if (!loaded) return;
+    if (!loaded) return;
+    localStorage.setItem(storageKeys.accounts, JSON.stringify(accounts));
+  }, [accounts, loaded]);
 
-  localStorage.setItem(storageKeys.accounts, JSON.stringify(accounts));
-}, [accounts, loaded]);
+  function addAccount(account: FundedAccount) {
+    setAccounts((currentAccounts) => [account, ...currentAccounts]);
+  }
 
-function addAccount(account: FundedAccount) {
-  setAccounts((currentAccounts) => [account, ...currentAccounts]);
-}
-
-function deleteAccount(accountId: string) {
-  setAccounts((currentAccounts) =>
-    currentAccounts.filter((account) => account.id !== accountId)
-  );
-}
+  function deleteAccount(accountId: string) {
+    setAccounts((currentAccounts) =>
+      currentAccounts.filter((account) => account.id !== accountId)
+    );
+  }
 
   function addTrade(trade: Trade) {
     setTrades((currentTrades) => [trade, ...currentTrades]);
@@ -245,50 +280,58 @@ function deleteAccount(accountId: string) {
     setSelectedTrade((currentTrade) =>
       currentTrade?.id === tradeId ? null : currentTrade
     );
+
+    setEditingTrade((currentTrade) =>
+      currentTrade?.id === tradeId ? null : currentTrade
+    );
   }
-  async function exportElementAsImage(
-  element: HTMLDivElement | null,
-  fileName: string
-) {
-  if (!element) return;
 
-  const canvas = await html2canvas(element, {
-    backgroundColor: "#080808",
-    scale: 2,
-    useCORS: true,
-    logging: false,
-  });
+  function openEditTrade(trade: Trade) {
+    setEditingTrade({ ...trade });
+  }
 
-  const imageUrl = canvas.toDataURL("image/png");
-  const downloadLink = document.createElement("a");
+  function updateEditingTrade(field: keyof Trade, value: string) {
+    setEditingTrade((currentTrade) => {
+      if (!currentTrade) return currentTrade;
 
-  downloadLink.href = imageUrl;
-  downloadLink.download = `${sanitizeFileName(fileName) || "lifeos-export"}.png`;
-  downloadLink.click();
-}
+      return {
+        ...currentTrade,
+        [field]: value,
+      };
+    });
+  }
 
-function exportSelectedTradeAsImage() {
-  if (!selectedTrade) return;
+  function handleEditImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
 
-  exportElementAsImage(
-    selectedTradeExportRef.current,
-    `trade-${selectedTrade.date}-${selectedTrade.account}-${selectedTrade.asset}`
-  );
-}
+    if (!file) return;
 
-function exportWeeklyReportAsImage() {
-  exportElementAsImage(
-    weeklyReportExportRef.current,
-    `journal-semana-${currentWeekRange.start}-${currentWeekRange.end}`
-  );
-}
+    const reader = new FileReader();
 
-function exportMonthlyReportAsImage() {
-  exportElementAsImage(
-    monthlyReportExportRef.current,
-    `journal-mes-${new Date().toISOString().slice(0, 7)}`
-  );
-}
+    reader.onload = () => {
+      updateEditingTrade("image", String(reader.result || ""));
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function saveEditedTrade(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingTrade) return;
+
+    setTrades((currentTrades) =>
+      currentTrades.map((trade) =>
+        trade.id === editingTrade.id ? editingTrade : trade
+      )
+    );
+
+    setSelectedTrade((currentTrade) =>
+      currentTrade?.id === editingTrade.id ? editingTrade : currentTrade
+    );
+
+    setEditingTrade(null);
+  }
 
   function updateRule(
     index: number,
@@ -318,6 +361,71 @@ function exportMonthlyReportAsImage() {
     );
   }
 
+  async function exportElementAsImage(
+    element: HTMLDivElement | null,
+    fileName: string
+  ) {
+    if (!element) return;
+
+    const canvas = await html2canvas(element, {
+      backgroundColor: "#080808",
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+
+    const imageUrl = canvas.toDataURL("image/png");
+    const downloadLink = document.createElement("a");
+
+    downloadLink.href = imageUrl;
+    downloadLink.download = `${sanitizeFileName(fileName) || "lifeos-export"}.png`;
+    downloadLink.click();
+  }
+
+  function exportSelectedTradeAsImage() {
+    if (!selectedTrade) return;
+
+    exportElementAsImage(
+      selectedTradeExportRef.current,
+      `trade-${selectedTrade.date}-${selectedTrade.account}-${selectedTrade.asset}`
+    );
+  }
+
+  function exportSocialPostAsImage() {
+    if (!selectedTrade) return;
+
+    exportElementAsImage(
+      socialPostExportRef.current,
+      `post-${selectedTrade.date}-${selectedTrade.account}-${selectedTrade.asset}`
+    );
+  }
+
+  function exportWeeklyReportAsImage() {
+    exportElementAsImage(
+      weeklyReportExportRef.current,
+      `journal-semana-${currentWeekRange.start}-${currentWeekRange.end}`
+    );
+  }
+
+  function exportMonthlyReportAsImage() {
+    exportElementAsImage(
+      monthlyReportExportRef.current,
+      `journal-mes-${currentMonthKey}`
+    );
+  }
+
+  function resetFilters() {
+    setFilters({
+      account: "Todos",
+      asset: "Todos",
+      direction: "Todos",
+      result: "Todos",
+      setup: "Todos",
+      emotion: "Todos",
+      month: "Todos",
+    });
+  }
+
   const registeredTrades = trades.filter(
     (trade) => trade.status === "Registrado"
   );
@@ -335,486 +443,483 @@ function exportMonthlyReportAsImage() {
     registeredTrades.length > 0
       ? Math.round((winningTrades.length / registeredTrades.length) * 100)
       : 0;
-      const tradesByDate = registeredTrades.reduce<Record<string, number>>(
-  (totals, trade) => {
-    totals[trade.date] = (totals[trade.date] || 0) + Number(trade.result || 0);
-    return totals;
-  },
-  {}
-);
 
-const dailyResults = Object.entries(tradesByDate).map(([date, total]) => ({
-  date,
-  total,
-}));
+  const tradesByDate = registeredTrades.reduce<Record<string, number>>(
+    (totals, trade) => {
+      totals[trade.date] =
+        (totals[trade.date] || 0) + Number(trade.result || 0);
+      return totals;
+    },
+    {}
+  );
 
-const bestDay =
-  dailyResults.length > 0
-    ? dailyResults.reduce((best, day) => (day.total > best.total ? day : best))
-    : null;
+  const dailyResults = Object.entries(tradesByDate).map(([date, total]) => ({
+    date,
+    total,
+  }));
 
-const worstDay =
-  dailyResults.length > 0
-    ? dailyResults.reduce((worst, day) =>
-        day.total < worst.total ? day : worst
-      )
-    : null;
+  const bestDay =
+    dailyResults.length > 0
+      ? dailyResults.reduce((best, day) => (day.total > best.total ? day : best))
+      : null;
 
-const averagePerTrade =
-  registeredTrades.length > 0 ? totalPnL / registeredTrades.length : 0;
+  const worstDay =
+    dailyResults.length > 0
+      ? dailyResults.reduce((worst, day) =>
+          day.total < worst.total ? day : worst
+        )
+      : null;
 
-const biggestWin =
-  registeredTrades.length > 0
-    ? registeredTrades.reduce((best, trade) =>
-        Number(trade.result) > Number(best.result) ? trade : best
-      )
-    : null;
+  const averagePerTrade =
+    registeredTrades.length > 0 ? totalPnL / registeredTrades.length : 0;
 
-const biggestLoss =
-  registeredTrades.length > 0
-    ? registeredTrades.reduce((worst, trade) =>
-        Number(trade.result) < Number(worst.result) ? trade : worst
-      )
-    : null;
+  const biggestWin =
+    registeredTrades.length > 0
+      ? registeredTrades.reduce((best, trade) =>
+          Number(trade.result) > Number(best.result) ? trade : best
+        )
+      : null;
 
-function getMostRepeatedValueFromTrades(
-  tradeList: Trade[],
-  field: "setup" | "emotion" | "account"
-) {
-  const counts = new Map<string, number>();
+  const biggestLoss =
+    registeredTrades.length > 0
+      ? registeredTrades.reduce((worst, trade) =>
+          Number(trade.result) < Number(worst.result) ? trade : worst
+        )
+      : null;
 
-  tradeList.forEach((trade) => {
-    const value = trade[field]?.trim();
+  function getMostRepeatedValueFromTrades(
+    tradeList: Trade[],
+    field: "setup" | "emotion" | "account"
+  ) {
+    const counts = new Map<string, number>();
 
-    if (!value) return;
+    tradeList.forEach((trade) => {
+      const value = trade[field]?.trim();
 
-    counts.set(value, (counts.get(value) || 0) + 1);
-  });
+      if (!value) return;
 
-  let mostRepeated = "—";
-  let highestCount = 0;
+      counts.set(value, (counts.get(value) || 0) + 1);
+    });
 
-  counts.forEach((count, value) => {
-    if (count > highestCount) {
-      highestCount = count;
-      mostRepeated = value;
+    let mostRepeated = "—";
+    let highestCount = 0;
+
+    counts.forEach((count, value) => {
+      if (count > highestCount) {
+        highestCount = count;
+        mostRepeated = value;
+      }
+    });
+
+    return mostRepeated;
+  }
+
+  function getMostRepeatedValue(field: "setup" | "emotion" | "account") {
+    return getMostRepeatedValueFromTrades(registeredTrades, field);
+  }
+
+  const insightCards = [
+    {
+      label: "Mejor día",
+      value: bestDay ? `$${bestDay.total}` : "—",
+      description: bestDay ? bestDay.date : "Sin datos",
+      color: "text-emerald-400",
+    },
+    {
+      label: "Peor día",
+      value: worstDay ? `$${worstDay.total}` : "—",
+      description: worstDay ? worstDay.date : "Sin datos",
+      color: "text-red-400",
+    },
+    {
+      label: "Promedio por trade",
+      value:
+        registeredTrades.length > 0 ? `$${averagePerTrade.toFixed(0)}` : "—",
+      description: "Resultado promedio",
+      color: averagePerTrade >= 0 ? "text-emerald-400" : "text-red-400",
+    },
+    {
+      label: "Mayor ganancia",
+      value:
+        biggestWin && Number(biggestWin.result) > 0
+          ? `$${biggestWin.result}`
+          : "—",
+      description: biggestWin?.setup || "Sin datos",
+      color: "text-emerald-400",
+    },
+    {
+      label: "Mayor pérdida",
+      value:
+        biggestLoss && Number(biggestLoss.result) < 0
+          ? `$${biggestLoss.result}`
+          : "—",
+      description: biggestLoss?.setup || "Sin datos",
+      color: "text-red-400",
+    },
+    {
+      label: "Setup más usado",
+      value: getMostRepeatedValue("setup"),
+      description: "Según tus trades",
+      color: "text-white",
+    },
+    {
+      label: "Emoción frecuente",
+      value: getMostRepeatedValue("emotion"),
+      description: "Tu estado más repetido",
+      color: "text-blue-300",
+    },
+  ];
+
+  const currentWeekRange = getCurrentWeekRange();
+
+  const weeklyTrades = registeredTrades.filter(
+    (trade) =>
+      trade.date >= currentWeekRange.start && trade.date <= currentWeekRange.end
+  );
+
+  const weeklyPnL = weeklyTrades.reduce(
+    (total, trade) => total + Number(trade.result || 0),
+    0
+  );
+
+  const weeklyWinningTrades = weeklyTrades.filter(
+    (trade) => Number(trade.result) > 0
+  );
+
+  const weeklyWinRate =
+    weeklyTrades.length > 0
+      ? Math.round((weeklyWinningTrades.length / weeklyTrades.length) * 100)
+      : 0;
+
+  const weeklyTradesByDate = weeklyTrades.reduce<
+    Record<string, { date: string; total: number; count: number }>
+  >((totals, trade) => {
+    if (!totals[trade.date]) {
+      totals[trade.date] = {
+        date: trade.date,
+        total: 0,
+        count: 0,
+      };
     }
-  });
 
-  return mostRepeated;
-}
+    totals[trade.date].total += Number(trade.result || 0);
+    totals[trade.date].count += 1;
 
-function getMostRepeatedValue(field: "setup" | "emotion" | "account") {
-  return getMostRepeatedValueFromTrades(registeredTrades, field);
-}
+    return totals;
+  }, {});
 
-const insightCards = [
-  {
-    label: "Mejor día",
-    value: bestDay ? `$${bestDay.total}` : "—",
-    description: bestDay ? bestDay.date : "Sin datos",
-    color: "text-emerald-400",
-  },
-  {
-    label: "Peor día",
-    value: worstDay ? `$${worstDay.total}` : "—",
-    description: worstDay ? worstDay.date : "Sin datos",
-    color: "text-red-400",
-  },
-  {
-    label: "Promedio por trade",
-    value: registeredTrades.length > 0 ? `$${averagePerTrade.toFixed(0)}` : "—",
-    description: "Resultado promedio",
-    color: averagePerTrade >= 0 ? "text-emerald-400" : "text-red-400",
-  },
-  {
-    label: "Mayor ganancia",
-    value:
-      biggestWin && Number(biggestWin.result) > 0
-        ? `$${biggestWin.result}`
-        : "—",
-    description: biggestWin?.setup || "Sin datos",
-    color: "text-emerald-400",
-  },
-  {
-    label: "Mayor pérdida",
-    value:
-      biggestLoss && Number(biggestLoss.result) < 0
-        ? `$${biggestLoss.result}`
-        : "—",
-    description: biggestLoss?.setup || "Sin datos",
-    color: "text-red-400",
-  },
-  {
-    label: "Setup más usado",
-    value: getMostRepeatedValue("setup"),
-    description: "Según tus trades",
-    color: "text-white",
-  },
-  {
-    label: "Emoción frecuente",
-    value: getMostRepeatedValue("emotion"),
-    description: "Tu estado más repetido",
-    color: "text-blue-300",
-  },
-];
-const currentWeekRange = getCurrentWeekRange();
+  const weeklyDailyResults = Object.values(weeklyTradesByDate);
 
-const weeklyTrades = registeredTrades.filter(
-  (trade) =>
-    trade.date >= currentWeekRange.start && trade.date <= currentWeekRange.end
-);
+  const weeklyBestDay =
+    weeklyDailyResults.length > 0
+      ? weeklyDailyResults.reduce((best, day) =>
+          day.total > best.total ? day : best
+        )
+      : null;
 
-const weeklyPnL = weeklyTrades.reduce(
-  (total, trade) => total + Number(trade.result || 0),
-  0
-);
+  const weeklyWorstDay =
+    weeklyDailyResults.length > 0
+      ? weeklyDailyResults.reduce((worst, day) =>
+          day.total < worst.total ? day : worst
+        )
+      : null;
 
-const weeklyWinningTrades = weeklyTrades.filter(
-  (trade) => Number(trade.result) > 0
-);
+  const weeklyReportCards = [
+    {
+      label: "Trades semana",
+      value: `${weeklyTrades.length}`,
+      description: `${currentWeekRange.start} a ${currentWeekRange.end}`,
+      color: "text-white",
+    },
+    {
+      label: "P&L semanal",
+      value: `$${weeklyPnL}`,
+      description: "Resultado total de la semana",
+      color: weeklyPnL >= 0 ? "text-emerald-400" : "text-red-400",
+    },
+    {
+      label: "Win Rate semanal",
+      value: `${weeklyWinRate}%`,
+      description: `${weeklyWinningTrades.length} ganadas de ${weeklyTrades.length}`,
+      color: "text-blue-300",
+    },
+    {
+      label: "Mejor día",
+      value: weeklyBestDay ? `$${weeklyBestDay.total}` : "—",
+      description: weeklyBestDay
+        ? `${getWeekdayName(weeklyBestDay.date)} · ${weeklyBestDay.date}`
+        : "Sin datos",
+      color: "text-emerald-400",
+    },
+    {
+      label: "Peor día",
+      value: weeklyWorstDay ? `$${weeklyWorstDay.total}` : "—",
+      description: weeklyWorstDay
+        ? `${getWeekdayName(weeklyWorstDay.date)} · ${weeklyWorstDay.date}`
+        : "Sin datos",
+      color: "text-red-400",
+    },
+    {
+      label: "Setup semanal",
+      value: getMostRepeatedValueFromTrades(weeklyTrades, "setup"),
+      description: "Setup más repetido esta semana",
+      color: "text-yellow-300",
+    },
+  ];
 
-const weeklyWinRate =
-  weeklyTrades.length > 0
-    ? Math.round((weeklyWinningTrades.length / weeklyTrades.length) * 100)
-    : 0;
+  const currentMonthKey = new Date().toISOString().slice(0, 7);
 
-const weeklyTradesByDate = weeklyTrades.reduce<
-  Record<string, { date: string; total: number; count: number }>
->((totals, trade) => {
-  if (!totals[trade.date]) {
-    totals[trade.date] = {
-      date: trade.date,
-      total: 0,
-      count: 0,
-    };
-  }
+  const monthlyTrades = registeredTrades.filter((trade) =>
+    trade.date.startsWith(currentMonthKey)
+  );
 
-  totals[trade.date].total += Number(trade.result || 0);
-  totals[trade.date].count += 1;
+  const monthlyPnL = monthlyTrades.reduce(
+    (total, trade) => total + Number(trade.result || 0),
+    0
+  );
 
-  return totals;
-}, {});
+  const monthlyWinningTrades = monthlyTrades.filter(
+    (trade) => Number(trade.result) > 0
+  );
 
-const weeklyDailyResults = Object.values(weeklyTradesByDate);
+  const monthlyWinRate =
+    monthlyTrades.length > 0
+      ? Math.round((monthlyWinningTrades.length / monthlyTrades.length) * 100)
+      : 0;
 
-const weeklyBestDay =
-  weeklyDailyResults.length > 0
-    ? weeklyDailyResults.reduce((best, day) =>
-        day.total > best.total ? day : best
-      )
-    : null;
+  const monthlyTradesByDate = monthlyTrades.reduce<
+    Record<string, { date: string; total: number; count: number }>
+  >((totals, trade) => {
+    if (!totals[trade.date]) {
+      totals[trade.date] = {
+        date: trade.date,
+        total: 0,
+        count: 0,
+      };
+    }
 
-const weeklyWorstDay =
-  weeklyDailyResults.length > 0
-    ? weeklyDailyResults.reduce((worst, day) =>
-        day.total < worst.total ? day : worst
-      )
-    : null;
+    totals[trade.date].total += Number(trade.result || 0);
+    totals[trade.date].count += 1;
 
-const weeklyReportCards = [
-  {
-    label: "Trades semana",
-    value: `${weeklyTrades.length}`,
-    description: `${currentWeekRange.start} a ${currentWeekRange.end}`,
-    color: "text-white",
-  },
-  {
-    label: "P&L semanal",
-    value: `$${weeklyPnL}`,
-    description: "Resultado total de la semana",
-    color: weeklyPnL >= 0 ? "text-emerald-400" : "text-red-400",
-  },
-  {
-    label: "Win Rate semanal",
-    value: `${weeklyWinRate}%`,
-    description: `${weeklyWinningTrades.length} ganadas de ${weeklyTrades.length}`,
-    color: "text-blue-300",
-  },
-  {
-    label: "Mejor día",
-    value: weeklyBestDay ? `$${weeklyBestDay.total}` : "—",
-    description: weeklyBestDay
-      ? `${getWeekdayName(weeklyBestDay.date)} · ${weeklyBestDay.date}`
-      : "Sin datos",
-    color: "text-emerald-400",
-  },
-  {
-    label: "Peor día",
-    value: weeklyWorstDay ? `$${weeklyWorstDay.total}` : "—",
-    description: weeklyWorstDay
-      ? `${getWeekdayName(weeklyWorstDay.date)} · ${weeklyWorstDay.date}`
-      : "Sin datos",
-    color: "text-red-400",
-  },
-  {
-    label: "Setup semanal",
-    value: getMostRepeatedValueFromTrades(weeklyTrades, "setup"),
-    description: "Setup más repetido esta semana",
-    color: "text-yellow-300",
-  },
-];
-const currentMonthKey = new Date().toISOString().slice(0, 7);
+    return totals;
+  }, {});
 
-const monthlyTrades = registeredTrades.filter((trade) =>
-  trade.date.startsWith(currentMonthKey)
-);
+  const monthlyDailyResults = Object.values(monthlyTradesByDate);
 
-const monthlyPnL = monthlyTrades.reduce(
-  (total, trade) => total + Number(trade.result || 0),
-  0
-);
+  const monthlyBestDay =
+    monthlyDailyResults.length > 0
+      ? monthlyDailyResults.reduce((best, day) =>
+          day.total > best.total ? day : best
+        )
+      : null;
 
-const monthlyWinningTrades = monthlyTrades.filter(
-  (trade) => Number(trade.result) > 0
-);
+  const monthlyWorstDay =
+    monthlyDailyResults.length > 0
+      ? monthlyDailyResults.reduce((worst, day) =>
+          day.total < worst.total ? day : worst
+        )
+      : null;
 
-const monthlyWinRate =
-  monthlyTrades.length > 0
-    ? Math.round((monthlyWinningTrades.length / monthlyTrades.length) * 100)
-    : 0;
+  const monthlyReportCards = [
+    {
+      label: "Trades del mes",
+      value: `${monthlyTrades.length}`,
+      description: currentMonthKey,
+      color: "#ffffff",
+    },
+    {
+      label: "P&L mensual",
+      value: `$${monthlyPnL}`,
+      description: "Resultado total del mes",
+      color: monthlyPnL >= 0 ? "#34d399" : "#f87171",
+    },
+    {
+      label: "Win Rate mensual",
+      value: `${monthlyWinRate}%`,
+      description: `${monthlyWinningTrades.length} ganadas de ${monthlyTrades.length}`,
+      color: "#93c5fd",
+    },
+    {
+      label: "Mejor día",
+      value: monthlyBestDay ? `$${monthlyBestDay.total}` : "—",
+      description: monthlyBestDay
+        ? `${getWeekdayName(monthlyBestDay.date)} · ${monthlyBestDay.date}`
+        : "Sin datos",
+      color: "#34d399",
+    },
+    {
+      label: "Peor día",
+      value: monthlyWorstDay ? `$${monthlyWorstDay.total}` : "—",
+      description: monthlyWorstDay
+        ? `${getWeekdayName(monthlyWorstDay.date)} · ${monthlyWorstDay.date}`
+        : "Sin datos",
+      color: "#f87171",
+    },
+    {
+      label: "Setup del mes",
+      value: getMostRepeatedValueFromTrades(monthlyTrades, "setup"),
+      description: "Setup más repetido este mes",
+      color: "#facc15",
+    },
+  ];
 
-const monthlyTradesByDate = monthlyTrades.reduce<
-  Record<string, { date: string; total: number; count: number }>
->((totals, trade) => {
-  if (!totals[trade.date]) {
-    totals[trade.date] = {
-      date: trade.date,
-      total: 0,
-      count: 0,
-    };
-  }
+  const weeklyExportDays = getWeekCalendarDays(currentWeekRange.start);
+  const monthlyExportDays = getMonthCalendarDays(currentMonthKey);
 
-  totals[trade.date].total += Number(trade.result || 0);
-  totals[trade.date].count += 1;
+  function renderExportCalendar(
+    days: Array<{ date: string; day: number; isCurrentMonth: boolean }>,
+    tradeList: Trade[],
+    type: "week" | "month"
+  ) {
+    const weekLabels =
+      type === "month"
+        ? ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+        : days.map((day) => getWeekdayName(day.date).slice(0, 3).toUpperCase());
 
-  return totals;
-}, {});
+    return (
+      <div style={{ marginBottom: "28px" }}>
+        <p
+          style={{
+            color: "#9ca3af",
+            fontSize: "15px",
+            margin: "0 0 12px",
+          }}
+        >
+          Calendario de operaciones
+        </p>
 
-const monthlyDailyResults = Object.values(monthlyTradesByDate);
-
-const monthlyBestDay =
-  monthlyDailyResults.length > 0
-    ? monthlyDailyResults.reduce((best, day) =>
-        day.total > best.total ? day : best
-      )
-    : null;
-
-const monthlyWorstDay =
-  monthlyDailyResults.length > 0
-    ? monthlyDailyResults.reduce((worst, day) =>
-        day.total < worst.total ? day : worst
-      )
-    : null;
-
-const monthlyReportCards = [
-  {
-    label: "Trades del mes",
-    value: `${monthlyTrades.length}`,
-    description: currentMonthKey,
-    color: monthlyTrades.length > 0 ? "#ffffff" : "#9ca3af",
-  },
-  {
-    label: "P&L mensual",
-    value: `$${monthlyPnL}`,
-    description: "Resultado total del mes",
-    color: monthlyPnL >= 0 ? "#34d399" : "#f87171",
-  },
-  {
-    label: "Win Rate mensual",
-    value: `${monthlyWinRate}%`,
-    description: `${monthlyWinningTrades.length} ganadas de ${monthlyTrades.length}`,
-    color: "#93c5fd",
-  },
-  {
-    label: "Mejor día",
-    value: monthlyBestDay ? `$${monthlyBestDay.total}` : "—",
-    description: monthlyBestDay
-      ? `${getWeekdayName(monthlyBestDay.date)} · ${monthlyBestDay.date}`
-      : "Sin datos",
-    color: "#34d399",
-  },
-  {
-    label: "Peor día",
-    value: monthlyWorstDay ? `$${monthlyWorstDay.total}` : "—",
-    description: monthlyWorstDay
-      ? `${getWeekdayName(monthlyWorstDay.date)} · ${monthlyWorstDay.date}`
-      : "Sin datos",
-    color: "#f87171",
-  },
-  {
-    label: "Setup del mes",
-    value: getMostRepeatedValueFromTrades(monthlyTrades, "setup"),
-    description: "Setup más repetido este mes",
-    color: "#facc15",
-  },
-];
-const weeklyExportDays = getWeekCalendarDays(currentWeekRange.start);
-const monthlyExportDays = getMonthCalendarDays(currentMonthKey);
-
-function renderExportCalendar(
-  days: Array<{ date: string; day: number; isCurrentMonth: boolean }>,
-  tradeList: Trade[],
-  type: "week" | "month"
-) {
-  const weekLabels =
-    type === "month"
-      ? ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
-      : days.map((day) =>
-          getWeekdayName(day.date).slice(0, 3).toUpperCase()
-        );
-
-  return (
-    <div style={{ marginBottom: "28px" }}>
-      <p
-        style={{
-          color: "#9ca3af",
-          fontSize: "15px",
-          margin: "0 0 12px",
-        }}
-      >
-        Calendario de operaciones
-      </p>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          gap: "10px",
-          marginBottom: "10px",
-        }}
-      >
-        {weekLabels.map((label) => (
-          <div
-            key={label}
-            style={{
-              color: "#71717a",
-              fontSize: "12px",
-              fontWeight: 700,
-              textAlign: "center",
-              textTransform: "uppercase",
-            }}
-          >
-            {label}
-          </div>
-        ))}
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          gap: "10px",
-        }}
-      >
-        {days.map((day) => {
-          const dayTrades = tradeList.filter((trade) => trade.date === day.date);
-
-          const dayPnL = dayTrades.reduce(
-            (total, trade) => total + Number(trade.result || 0),
-            0
-          );
-
-          const isPositive = dayPnL > 0;
-          const isNegative = dayPnL < 0;
-const uniqueDirections = [
-  ...new Set(dayTrades.map((trade) => trade.direction)),
-];
-
-const directionLabel =
-  dayTrades.length === 0
-    ? "Sin trades"
-    : uniqueDirections.length === 1
-    ? uniqueDirections[0]
-    : "Mixto";
-
-const tradeCountLabel =
-  dayTrades.length === 1 ? "1 trade" : `${dayTrades.length} trades`;
-
-const calendarDayLabel =
-  dayTrades.length > 0 ? `${directionLabel} · ${tradeCountLabel}` : "Sin trades";
-          return (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, 1fr)",
+            gap: "10px",
+            marginBottom: "10px",
+          }}
+        >
+          {weekLabels.map((label) => (
             <div
-              key={day.date}
+              key={label}
               style={{
-                minHeight: type === "month" ? "110px" : "140px",
-                border: `1px solid ${
-                  isPositive
-                    ? "#064e3b"
-                    : isNegative
-                    ? "#7f1d1d"
-                    : "#27272a"
-                }`,
-                background: isPositive
-                  ? "#022c22"
-                  : isNegative
-                  ? "#450a0a"
-                  : "#000000",
-                borderRadius: "18px",
-                padding: "14px",
-                opacity: day.isCurrentMonth ? 1 : 0.35,
+                color: "#71717a",
+                fontSize: "12px",
+                fontWeight: 700,
+                textAlign: "center",
+                textTransform: "uppercase",
               }}
             >
-              <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    marginBottom: "12px",
-  }}
->
-  <span
-    style={{
-      color: "#ffffff",
-      fontSize: "18px",
-      fontWeight: 800,
-    }}
-  >
-    {day.day}
-  </span>
-</div>
-
-{dayTrades.length > 0 ? (
-  <>
-    <p
-      style={{
-        color: isPositive ? "#34d399" : "#f87171",
-        fontSize: "20px",
-        fontWeight: 800,
-        margin: "0 0 8px",
-      }}
-    >
-      ${dayPnL}
-    </p>
-
-    <p
-      style={{
-        color: "#a1a1aa",
-        fontSize: "12px",
-        margin: 0,
-      }}
-    >
-     {calendarDayLabel}
-    </p>
-  </>
-) : (
-  
-  <p
-    style={{
-      color: "#3f3f46",
-      fontSize: "12px",
-      margin: 0,
-    }}
-  >
-    Sin trades
-  </p>
-)}
+              {label}
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, 1fr)",
+            gap: "10px",
+          }}
+        >
+          {days.map((day) => {
+            const dayTrades = tradeList.filter(
+              (trade) => trade.date === day.date
+            );
+
+            const dayPnL = dayTrades.reduce(
+              (total, trade) => total + Number(trade.result || 0),
+              0
+            );
+
+            const isPositive = dayPnL > 0;
+            const isNegative = dayPnL < 0;
+            const directionLabel = getDirectionLabel(dayTrades);
+            const tradeCountLabel =
+              dayTrades.length === 1 ? "1 trade" : `${dayTrades.length} trades`;
+            const calendarDayLabel =
+              dayTrades.length > 0
+                ? `${directionLabel} · ${tradeCountLabel}`
+                : "Sin trades";
+
+            return (
+              <div
+                key={day.date}
+                style={{
+                  minHeight: type === "month" ? "110px" : "140px",
+                  border: `1px solid ${
+                    isPositive
+                      ? "#064e3b"
+                      : isNegative
+                      ? "#7f1d1d"
+                      : "#27272a"
+                  }`,
+                  background: isPositive
+                    ? "#022c22"
+                    : isNegative
+                    ? "#450a0a"
+                    : "#000000",
+                  borderRadius: "18px",
+                  padding: "14px",
+                  opacity: day.isCurrentMonth ? 1 : 0.35,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#ffffff",
+                      fontSize: "18px",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {day.day}
+                  </span>
+                </div>
+
+                {dayTrades.length > 0 ? (
+                  <>
+                    <p
+                      style={{
+                        color: isPositive ? "#34d399" : "#f87171",
+                        fontSize: "20px",
+                        fontWeight: 800,
+                        margin: "0 0 8px",
+                      }}
+                    >
+                      ${dayPnL}
+                    </p>
+
+                    <p
+                      style={{
+                        color: "#a1a1aa",
+                        fontSize: "12px",
+                        margin: 0,
+                      }}
+                    >
+                      {calendarDayLabel}
+                    </p>
+                  </>
+                ) : (
+                  <p
+                    style={{
+                      color: "#3f3f46",
+                      fontSize: "12px",
+                      margin: 0,
+                    }}
+                  >
+                    Sin trades
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   const tradingStats = [
     {
@@ -847,6 +952,55 @@ const calendarDayLabel =
     },
   ];
 
+  const availableMonths = Array.from(
+    new Set(trades.map((trade) => trade.date.slice(0, 7)).filter(Boolean))
+  ).sort((a, b) => b.localeCompare(a));
+
+  const accountOptions = getUniqueValues(trades, "account");
+  const assetOptions = getUniqueValues(trades, "asset");
+  const setupOptions = getUniqueValues(trades, "setup");
+  const emotionOptions = getUniqueValues(trades, "emotion");
+
+  const filteredTrades = useMemo(() => {
+    return trades.filter((trade) => {
+      const resultNumber = Number(trade.result || 0);
+
+      const matchesAccount =
+        filters.account === "Todos" || trade.account === filters.account;
+
+      const matchesAsset =
+        filters.asset === "Todos" || trade.asset === filters.asset;
+
+      const matchesDirection =
+        filters.direction === "Todos" || trade.direction === filters.direction;
+
+      const matchesSetup =
+        filters.setup === "Todos" || trade.setup === filters.setup;
+
+      const matchesEmotion =
+        filters.emotion === "Todos" || trade.emotion === filters.emotion;
+
+      const matchesMonth =
+        filters.month === "Todos" || trade.date.startsWith(filters.month);
+
+      const matchesResult =
+        filters.result === "Todos" ||
+        (filters.result === "Ganadas" && resultNumber > 0) ||
+        (filters.result === "Perdidas" && resultNumber < 0) ||
+        (filters.result === "BE" && resultNumber === 0);
+
+      return (
+        matchesAccount &&
+        matchesAsset &&
+        matchesDirection &&
+        matchesSetup &&
+        matchesEmotion &&
+        matchesMonth &&
+        matchesResult
+      );
+    });
+  }, [trades, filters]);
+
   return (
     <>
       <header className="mb-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
@@ -869,9 +1023,9 @@ const calendarDayLabel =
         </div>
 
         <TradeEntryModal
-  onAddTrade={addTrade}
-  accounts={accounts.map((account) => account.name)}
-/>
+          onAddTrade={addTrade}
+          accounts={accounts.map((account) => account.name)}
+        />
       </header>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -936,60 +1090,62 @@ const calendarDayLabel =
       </div>
 
       <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-5">
-  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-    <div>
-      <p className="text-sm text-white/40">Control automático</p>
-      <h3 className="mt-1 text-2xl font-bold">Cuentas fondeadas</h3>
-      <p className="mt-2 max-w-2xl text-sm text-white/40">
-        Revisa balance, colchón, drawdown EOD y progreso de tus cuentas.
-      </p>
-    </div>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm text-white/40">Control automático</p>
+            <h3 className="mt-1 text-2xl font-bold">Cuentas fondeadas</h3>
+            <p className="mt-2 max-w-2xl text-sm text-white/40">
+              Revisa balance, colchón, drawdown EOD y progreso de tus cuentas.
+            </p>
+          </div>
 
-    <button
-      onClick={() => setIsAccountsOpen(true)}
-      className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-emerald-300"
-    >
-      Ver cuentas
-    </button>
-  </div>
-</div>
+          <button
+            onClick={() => setIsAccountsOpen(true)}
+            className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-emerald-300"
+          >
+            Ver cuentas
+          </button>
+        </div>
+      </div>
 
       <div className="mt-6">
         <TradingCalendar trades={trades} onSelectTrade={setSelectedTrade} />
       </div>
+
       <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-  <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-  <div>
-    <p className="text-sm text-white/40">Análisis del journal</p>
-    <h3 className="mt-1 text-2xl font-bold">Estadísticas clave</h3>
-  </div>
+        <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-sm text-white/40">Análisis del journal</p>
+            <h3 className="mt-1 text-2xl font-bold">Estadísticas clave</h3>
+          </div>
 
-  <button
-    onClick={exportMonthlyReportAsImage}
-    className="inline-flex w-fit items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/90"
-  >
-    <Download size={16} />
-    Exportar mes
-  </button>
-</div>
+          <button
+            onClick={exportMonthlyReportAsImage}
+            className="inline-flex w-fit items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/90"
+          >
+            <Download size={16} />
+            Exportar mes
+          </button>
+        </div>
 
-  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-    {insightCards.map((card) => (
-      <div
-        key={card.label}
-        className="rounded-2xl border border-white/10 bg-black/40 p-4"
-      >
-        <p className="text-xs text-white/40">{card.label}</p>
-        <p className={`mt-2 text-xl font-bold ${card.color}`}>
-          {card.value}
-        </p>
-        <p className="mt-1 truncate text-xs text-white/35">
-          {card.description}
-        </p>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {insightCards.map((card) => (
+            <div
+              key={card.label}
+              className="rounded-2xl border border-white/10 bg-black/40 p-4"
+            >
+              <p className="text-xs text-white/40">{card.label}</p>
+              <p className={`mt-2 text-xl font-bold ${card.color}`}>
+                {card.value}
+              </p>
+              <p className="mt-1 truncate text-xs text-white/35">
+                {card.description}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
-    ))}
-  </div>
-</div>
+
       <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
         <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
@@ -1001,18 +1157,18 @@ const calendarDayLabel =
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-  <span className="rounded-full border border-white/10 bg-black/40 px-4 py-2 text-xs font-semibold text-white/50">
-    {currentWeekRange.start} → {currentWeekRange.end}
-  </span>
+            <span className="rounded-full border border-white/10 bg-black/40 px-4 py-2 text-xs font-semibold text-white/50">
+              {currentWeekRange.start} → {currentWeekRange.end}
+            </span>
 
-  <button
-    onClick={exportWeeklyReportAsImage}
-    className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/90"
-  >
-    <Download size={16} />
-    Exportar semana
-  </button>
-</div>
+            <button
+              onClick={exportWeeklyReportAsImage}
+              className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/90"
+            >
+              <Download size={16} />
+              Exportar semana
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -1035,15 +1191,146 @@ const calendarDayLabel =
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 xl:col-span-2">
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div>
               <p className="text-sm text-white/40">Registro</p>
               <h3 className="text-2xl font-bold">Últimas operaciones</h3>
+              <p className="mt-2 text-sm text-white/40">
+                Usa filtros para revisar solo pérdidas, setups, emociones o
+                cuentas específicas.
+              </p>
             </div>
 
             <span className="rounded-full bg-white/10 px-4 py-2 text-xs text-white/60">
-              Guardado local
+              {filteredTrades.length} de {trades.length} trades
             </span>
+          </div>
+
+          <div className="mb-5 rounded-3xl border border-white/10 bg-black/30 p-4">
+            <div className="mb-4 flex items-center gap-2">
+              <Search size={16} className="text-emerald-400" />
+              <p className="text-sm font-bold text-white">Filtros</p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <select
+                value={filters.account}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    account: event.target.value,
+                  }))
+                }
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+              >
+                <option>Todos</option>
+                {accountOptions.map((account) => (
+                  <option key={account}>{account}</option>
+                ))}
+              </select>
+
+              <select
+                value={filters.asset}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    asset: event.target.value,
+                  }))
+                }
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+              >
+                <option>Todos</option>
+                {assetOptions.map((asset) => (
+                  <option key={asset}>{asset}</option>
+                ))}
+              </select>
+
+              <select
+                value={filters.direction}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    direction: event.target.value,
+                  }))
+                }
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+              >
+                <option>Todos</option>
+                <option>Long</option>
+                <option>Short</option>
+              </select>
+
+              <select
+                value={filters.result}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    result: event.target.value,
+                  }))
+                }
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+              >
+                <option>Todos</option>
+                <option>Ganadas</option>
+                <option>Perdidas</option>
+                <option>BE</option>
+              </select>
+
+              <select
+                value={filters.setup}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    setup: event.target.value,
+                  }))
+                }
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+              >
+                <option>Todos</option>
+                {setupOptions.map((setup) => (
+                  <option key={setup}>{setup}</option>
+                ))}
+              </select>
+
+              <select
+                value={filters.emotion}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    emotion: event.target.value,
+                  }))
+                }
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+              >
+                <option>Todos</option>
+                {emotionOptions.map((emotion) => (
+                  <option key={emotion}>{emotion}</option>
+                ))}
+              </select>
+
+              <select
+                value={filters.month}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    month: event.target.value,
+                  }))
+                }
+                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+              >
+                <option>Todos</option>
+                {availableMonths.map((month) => (
+                  <option key={month}>{month}</option>
+                ))}
+              </select>
+
+              <button
+                onClick={resetFilters}
+                className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-bold text-white/60 transition hover:bg-white/10 hover:text-white"
+              >
+                Limpiar filtros
+              </button>
+            </div>
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-white/10">
@@ -1060,19 +1347,18 @@ const calendarDayLabel =
               </thead>
 
               <tbody>
-                {trades.length === 0 ? (
+                {filteredTrades.length === 0 ? (
                   <tr className="border-t border-white/10">
                     <td
                       colSpan={6}
                       className="px-4 py-10 text-center text-white/40"
                     >
-                      Todavía no tienes operaciones registradas.
+                      No hay operaciones con esos filtros.
                     </td>
                   </tr>
                 ) : (
-                  trades.map((trade) => {
+                  filteredTrades.map((trade) => {
                     const resultNumber = Number(trade.result);
-            
 
                     return (
                       <tr key={trade.id} className="border-t border-white/10">
@@ -1109,6 +1395,14 @@ const calendarDayLabel =
                               title="Ver detalle"
                             >
                               <Eye size={16} />
+                            </button>
+
+                            <button
+                              onClick={() => openEditTrade(trade)}
+                              className="rounded-xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
+                              title="Editar operación"
+                            >
+                              <Pencil size={16} />
                             </button>
 
                             <button
@@ -1206,32 +1500,7 @@ const calendarDayLabel =
           )}
         </div>
       </div>
-{isAccountsOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-    <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="mb-5 flex items-center justify-between">
-        <div>
-          <p className="text-sm text-white/40">Trading Journal</p>
-          <h2 className="text-2xl font-bold text-white">Cuentas fondeadas</h2>
-        </div>
 
-        <button
-          onClick={() => setIsAccountsOpen(false)}
-          className="rounded-full bg-white/10 p-3 text-white/60 transition hover:bg-white/15 hover:text-white"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
-      <FundedAccountsPanel
-        accounts={accounts}
-        trades={registeredTrades}
-        onAddAccount={addAccount}
-        onDeleteAccount={deleteAccount}
-      />
-    </div>
-  </div>
-)}
       <div
         style={{
           position: "fixed",
@@ -1265,7 +1534,9 @@ const calendarDayLabel =
           <p style={{ color: "#9ca3af", margin: "0 0 24px" }}>
             {currentWeekRange.start} → {currentWeekRange.end}
           </p>
-{renderExportCalendar(weeklyExportDays, weeklyTrades, "week")}
+
+          {renderExportCalendar(weeklyExportDays, weeklyTrades, "week")}
+
           <div
             style={{
               display: "grid",
@@ -1328,7 +1599,9 @@ const calendarDayLabel =
           <p style={{ color: "#9ca3af", margin: "0 0 24px" }}>
             {currentMonthKey}
           </p>
-{renderExportCalendar(monthlyExportDays, monthlyTrades, "month")}
+
+          {renderExportCalendar(monthlyExportDays, monthlyTrades, "month")}
+
           <div
             style={{
               display: "grid",
@@ -1370,121 +1643,434 @@ const calendarDayLabel =
         </div>
 
         {selectedTrade && (
-          <div
-            ref={selectedTradeExportRef}
-            style={{
-              width: "100%",
-              marginTop: "32px",
-              background: "#080808",
-              border: "1px solid #27272a",
-              borderRadius: "24px",
-              padding: "28px",
-            }}
-          >
-            <p style={{ color: "#9ca3af", fontSize: "14px", margin: 0 }}>
-              Life OS Trading Journal
-            </p>
-
-            <h1 style={{ fontSize: "32px", margin: "8px 0 4px" }}>
-              Trade report
-            </h1>
-
-            <p style={{ color: "#9ca3af", margin: "0 0 24px" }}>
-              {selectedTrade.date} · {selectedTrade.account} ·{" "}
-              {selectedTrade.asset} · {selectedTrade.direction}
-            </p>
-
+          <>
             <div
+              ref={selectedTradeExportRef}
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "14px",
-                marginBottom: "18px",
+                width: "100%",
+                marginTop: "32px",
+                background: "#080808",
+                border: "1px solid #27272a",
+                borderRadius: "24px",
+                padding: "28px",
               }}
             >
-              <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px" }}>
-                <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
-                  Dirección
-                </p>
-                <p style={{ fontSize: "18px", fontWeight: 800, margin: "8px 0 0" }}>
-                  {selectedTrade.direction}
-                </p>
+              <p style={{ color: "#9ca3af", fontSize: "14px", margin: 0 }}>
+                Life OS Trading Journal
+              </p>
+
+              <h1 style={{ fontSize: "32px", margin: "8px 0 4px" }}>
+                Trade report
+              </h1>
+
+              <p style={{ color: "#9ca3af", margin: "0 0 24px" }}>
+                {selectedTrade.date} · {selectedTrade.account} ·{" "}
+                {selectedTrade.asset} · {selectedTrade.direction}
+              </p>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: "14px",
+                  marginBottom: "18px",
+                }}
+              >
+                <div
+                  style={{
+                    border: "1px solid #27272a",
+                    borderRadius: "16px",
+                    padding: "16px",
+                  }}
+                >
+                  <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
+                    Dirección
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: 800,
+                      margin: "8px 0 0",
+                    }}
+                  >
+                    {selectedTrade.direction}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid #27272a",
+                    borderRadius: "16px",
+                    padding: "16px",
+                  }}
+                >
+                  <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
+                    Riesgo
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: 800,
+                      margin: "8px 0 0",
+                    }}
+                  >
+                    ${selectedTrade.risk}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid #27272a",
+                    borderRadius: "16px",
+                    padding: "16px",
+                  }}
+                >
+                  <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
+                    Resultado
+                  </p>
+                  <p
+                    style={{
+                      color:
+                        Number(selectedTrade.result) >= 0
+                          ? "#34d399"
+                          : "#f87171",
+                      fontSize: "18px",
+                      fontWeight: 800,
+                      margin: "8px 0 0",
+                    }}
+                  >
+                    ${selectedTrade.result}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid #27272a",
+                    borderRadius: "16px",
+                    padding: "16px",
+                  }}
+                >
+                  <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
+                    Emoción
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: 800,
+                      margin: "8px 0 0",
+                    }}
+                  >
+                    {selectedTrade.emotion}
+                  </p>
+                </div>
               </div>
 
-              <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px" }}>
+              <div
+                style={{
+                  border: "1px solid #27272a",
+                  borderRadius: "16px",
+                  padding: "16px",
+                  marginBottom: "18px",
+                }}
+              >
                 <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
-                  Riesgo
-                </p>
-                <p style={{ fontSize: "18px", fontWeight: 800, margin: "8px 0 0" }}>
-                  ${selectedTrade.risk}
-                </p>
-              </div>
-
-              <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px" }}>
-                <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
-                  Resultado
+                  Setup
                 </p>
                 <p
                   style={{
-                    color: Number(selectedTrade.result) >= 0 ? "#34d399" : "#f87171",
-                    fontSize: "18px",
-                    fontWeight: 800,
+                    fontSize: "16px",
+                    fontWeight: 700,
                     margin: "8px 0 0",
                   }}
                 >
-                  ${selectedTrade.result}
+                  {selectedTrade.setup || "Sin setup registrado."}
                 </p>
               </div>
 
-              <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px" }}>
+              <div
+                style={{
+                  border: "1px solid #27272a",
+                  borderRadius: "16px",
+                  padding: "16px",
+                  marginBottom: "18px",
+                }}
+              >
                 <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
-                  Emoción
+                  Notas
                 </p>
-                <p style={{ fontSize: "18px", fontWeight: 800, margin: "8px 0 0" }}>
-                  {selectedTrade.emotion}
-                </p>
-              </div>
-            </div>
-
-            <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px", marginBottom: "18px" }}>
-              <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
-                Setup
-              </p>
-              <p style={{ fontSize: "16px", fontWeight: 700, margin: "8px 0 0" }}>
-                {selectedTrade.setup || "Sin setup registrado."}
-              </p>
-            </div>
-
-            <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px", marginBottom: "18px" }}>
-              <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
-                Notas
-              </p>
-              <p style={{ color: "#d4d4d8", fontSize: "15px", margin: "8px 0 0", whiteSpace: "pre-line" }}>
-                {selectedTrade.notes || "Sin notas registradas."}
-              </p>
-            </div>
-
-            {selectedTrade.image && (
-              <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px" }}>
-                <p style={{ color: "#9ca3af", fontSize: "12px", margin: "0 0 12px" }}>
-                  Imagen del trade
-                </p>
-
-                <img
-                  src={selectedTrade.image}
-                  alt="Imagen del trade"
+                <p
                   style={{
-                    width: "100%",
-                    maxHeight: "620px",
-                    objectFit: "contain",
-                    borderRadius: "14px",
+                    color: "#d4d4d8",
+                    fontSize: "15px",
+                    margin: "8px 0 0",
+                    whiteSpace: "pre-line",
                   }}
-                />
+                >
+                  {selectedTrade.notes || "Sin notas registradas."}
+                </p>
               </div>
-            )}
-          </div>
+
+              {selectedTrade.image && (
+                <div
+                  style={{
+                    border: "1px solid #27272a",
+                    borderRadius: "16px",
+                    padding: "16px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: "#9ca3af",
+                      fontSize: "12px",
+                      margin: "0 0 12px",
+                    }}
+                  >
+                    Imagen del trade
+                  </p>
+
+                  <img
+                    src={selectedTrade.image}
+                    alt="Imagen del trade"
+                    style={{
+                      width: "100%",
+                      maxHeight: "620px",
+                      objectFit: "contain",
+                      borderRadius: "14px",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div
+              ref={socialPostExportRef}
+              style={{
+                width: "1080px",
+                height: "1350px",
+                marginTop: "32px",
+                background:
+                  "linear-gradient(180deg, #080808 0%, #020617 55%, #000000 100%)",
+                border: "1px solid #27272a",
+                borderRadius: "36px",
+                padding: "56px",
+                overflow: "hidden",
+              }}
+            >
+              <p
+                style={{
+                  color: "#34d399",
+                  fontSize: "22px",
+                  fontWeight: 700,
+                  margin: 0,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Life OS Trading Journal
+              </p>
+
+              <h1
+                style={{
+                  fontSize: "68px",
+                  lineHeight: 1,
+                  margin: "20px 0 12px",
+                }}
+              >
+                Trade Recap
+              </h1>
+
+              <p style={{ color: "#9ca3af", fontSize: "28px", margin: 0 }}>
+                {selectedTrade.date} · {selectedTrade.asset} ·{" "}
+                {selectedTrade.direction}
+              </p>
+
+              <div
+                style={{
+                  marginTop: "42px",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "18px",
+                }}
+              >
+                <div
+                  style={{
+                    background: "#000000",
+                    border: "1px solid #27272a",
+                    borderRadius: "24px",
+                    padding: "24px",
+                  }}
+                >
+                  <p style={{ color: "#9ca3af", fontSize: "18px", margin: 0 }}>
+                    Resultado
+                  </p>
+                  <p
+                    style={{
+                      color:
+                        Number(selectedTrade.result) >= 0
+                          ? "#34d399"
+                          : "#f87171",
+                      fontSize: "44px",
+                      fontWeight: 900,
+                      margin: "10px 0 0",
+                    }}
+                  >
+                    ${selectedTrade.result}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    background: "#000000",
+                    border: "1px solid #27272a",
+                    borderRadius: "24px",
+                    padding: "24px",
+                  }}
+                >
+                  <p style={{ color: "#9ca3af", fontSize: "18px", margin: 0 }}>
+                    Riesgo
+                  </p>
+                  <p
+                    style={{
+                      color: "#ffffff",
+                      fontSize: "44px",
+                      fontWeight: 900,
+                      margin: "10px 0 0",
+                    }}
+                  >
+                    ${selectedTrade.risk}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    background: "#000000",
+                    border: "1px solid #27272a",
+                    borderRadius: "24px",
+                    padding: "24px",
+                  }}
+                >
+                  <p style={{ color: "#9ca3af", fontSize: "18px", margin: 0 }}>
+                    Emoción
+                  </p>
+                  <p
+                    style={{
+                      color: "#ffffff",
+                      fontSize: "34px",
+                      fontWeight: 900,
+                      margin: "16px 0 0",
+                    }}
+                  >
+                    {selectedTrade.emotion || "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: "32px",
+                  background: "#000000",
+                  border: "1px solid #27272a",
+                  borderRadius: "28px",
+                  padding: "24px",
+                }}
+              >
+                <p style={{ color: "#9ca3af", fontSize: "18px", margin: 0 }}>
+                  Setup
+                </p>
+                <p
+                  style={{
+                    color: "#facc15",
+                    fontSize: "40px",
+                    fontWeight: 900,
+                    margin: "10px 0 0",
+                  }}
+                >
+                  {selectedTrade.setup || "Sin setup"}
+                </p>
+              </div>
+
+              <div
+                style={{
+                  marginTop: "32px",
+                  background: "#000000",
+                  border: "1px solid #27272a",
+                  borderRadius: "28px",
+                  padding: "24px",
+                  height: "560px",
+                }}
+              >
+                {selectedTrade.image ? (
+                  <img
+                    src={selectedTrade.image}
+                    alt="Imagen del trade"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      borderRadius: "20px",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#71717a",
+                      fontSize: "24px",
+                    }}
+                  >
+                    Sin imagen del trade
+                  </div>
+                )}
+              </div>
+
+              <p
+                style={{
+                  margin: "32px 0 0",
+                  color: "#71717a",
+                  fontSize: "22px",
+                  textAlign: "center",
+                }}
+              >
+                Plan. Riesgo. Disciplina.
+              </p>
+            </div>
+          </>
         )}
       </div>
+
+      {isAccountsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-white/40">Trading Journal</p>
+                <h2 className="text-2xl font-bold text-white">
+                  Cuentas fondeadas
+                </h2>
+              </div>
+
+              <button
+                onClick={() => setIsAccountsOpen(false)}
+                className="rounded-full bg-white/10 p-3 text-white/60 transition hover:bg-white/15 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <FundedAccountsPanel
+              accounts={accounts}
+              trades={registeredTrades}
+              onAddAccount={addAccount}
+              onDeleteAccount={deleteAccount}
+            />
+          </div>
+        </div>
+      )}
+
       {selectedTrade && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -1492,35 +2078,54 @@ const calendarDayLabel =
               <div>
                 <p className="text-sm text-white/40">Detalle del trade</p>
                 <h2 className="mt-1 text-2xl font-bold">
-  {selectedTrade.account}
-</h2>
-<p className="mt-2 text-sm text-white/40">
-  {selectedTrade.date} · {selectedTrade.asset} · {selectedTrade.direction}
-</p>
+                  {selectedTrade.account}
+                </h2>
+                <p className="mt-2 text-sm text-white/40">
+                  {selectedTrade.date} · {selectedTrade.asset} ·{" "}
+                  {selectedTrade.direction}
+                </p>
               </div>
 
-              <div className="flex items-center gap-2" data-html2canvas-ignore="true">
-  <button
-    onClick={exportSelectedTradeAsImage}
-    className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400 px-4 py-2 text-sm font-bold text-black transition hover:bg-emerald-300"
-  >
-    <Download size={16} />
-    Exportar PNG
-  </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={exportSelectedTradeAsImage}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400 px-4 py-2 text-sm font-bold text-black transition hover:bg-emerald-300"
+                >
+                  <Download size={16} />
+                  Exportar PNG
+                </button>
 
-  <button
-    onClick={() => setSelectedTrade(null)}
-    className="rounded-2xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
-  >
-    <X size={20} />
-  </button>
-</div>
+                <button
+                  onClick={exportSocialPostAsImage}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/90"
+                >
+                  <Download size={16} />
+                  Post redes
+                </button>
+
+                <button
+                  onClick={() => openEditTrade(selectedTrade)}
+                  className="rounded-2xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
+                  title="Editar trade"
+                >
+                  <Pencil size={20} />
+                </button>
+
+                <button
+                  onClick={() => setSelectedTrade(null)}
+                  className="rounded-2xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-4">
               <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
                 <p className="text-xs text-white/40">Dirección</p>
-                <p className="mt-1 font-semibold">{selectedTrade.direction}</p>
+                <p className="mt-1 font-semibold">
+                  {selectedTrade.direction}
+                </p>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
@@ -1546,12 +2151,14 @@ const calendarDayLabel =
                 <p className="mt-1 font-semibold">{selectedTrade.emotion}</p>
               </div>
             </div>
-<div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-4">
-  <p className="text-xs text-white/40">Setup</p>
-  <p className="mt-2 text-sm font-semibold text-white/80">
-    {selectedTrade.setup || "Sin setup registrado."}
-  </p>
-</div>
+
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-4">
+              <p className="text-xs text-white/40">Setup</p>
+              <p className="mt-2 text-sm font-semibold text-white/80">
+                {selectedTrade.setup || "Sin setup registrado."}
+              </p>
+            </div>
+
             <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-4">
               <p className="text-xs text-white/40">Notas</p>
               <p className="mt-2 whitespace-pre-line text-sm text-white/70">
@@ -1575,6 +2182,188 @@ const calendarDayLabel =
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {editingTrade && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <form
+            onSubmit={saveEditedTrade}
+            className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl"
+          >
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-white/40">Trading Journal</p>
+                <h2 className="mt-1 text-2xl font-bold">Editar trade</h2>
+                <p className="mt-2 text-sm text-white/40">
+                  Cambia datos del trade sin borrarlo.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditingTrade(null)}
+                className="rounded-full bg-white/10 p-3 text-white/60 transition hover:bg-white/20 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="space-y-2">
+                <span className="text-xs text-white/40">Fecha</span>
+                <input
+                  type="date"
+                  value={editingTrade.date}
+                  onChange={(event) =>
+                    updateEditingTrade("date", event.target.value)
+                  }
+                  required
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-xs text-white/40">Cuenta</span>
+                <input
+                  value={editingTrade.account}
+                  onChange={(event) =>
+                    updateEditingTrade("account", event.target.value)
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-xs text-white/40">Activo</span>
+                <input
+                  value={editingTrade.asset}
+                  onChange={(event) =>
+                    updateEditingTrade("asset", event.target.value)
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-xs text-white/40">Dirección</span>
+                <select
+                  value={editingTrade.direction}
+                  onChange={(event) =>
+                    updateEditingTrade("direction", event.target.value)
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                >
+                  <option>Long</option>
+                  <option>Short</option>
+                </select>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-xs text-white/40">Riesgo</span>
+                <input
+                  type="number"
+                  value={editingTrade.risk}
+                  onChange={(event) =>
+                    updateEditingTrade("risk", event.target.value)
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-xs text-white/40">Resultado</span>
+                <input
+                  type="number"
+                  value={editingTrade.result}
+                  onChange={(event) =>
+                    updateEditingTrade("result", event.target.value)
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-xs text-white/40">Setup</span>
+                <input
+                  value={editingTrade.setup}
+                  onChange={(event) =>
+                    updateEditingTrade("setup", event.target.value)
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-xs text-white/40">Emoción</span>
+                <input
+                  value={editingTrade.emotion}
+                  onChange={(event) =>
+                    updateEditingTrade("emotion", event.target.value)
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                />
+              </label>
+
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-xs text-white/40">Notas</span>
+                <textarea
+                  value={editingTrade.notes}
+                  onChange={(event) =>
+                    updateEditingTrade("notes", event.target.value)
+                  }
+                  rows={4}
+                  className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                />
+              </label>
+
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-xs text-white/40">Cambiar imagen</span>
+
+                <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/40 p-4">
+                  <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/90">
+                    <Upload size={16} />
+                    Subir imagen
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditImageChange}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {editingTrade.image ? (
+                    <img
+                      src={editingTrade.image}
+                      alt="Imagen editada"
+                      className="max-h-64 w-full rounded-2xl object-contain"
+                    />
+                  ) : (
+                    <p className="text-sm text-white/40">
+                      Este trade no tiene imagen.
+                    </p>
+                  )}
+                </div>
+              </label>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEditingTrade(null)}
+                className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-white/60 transition hover:bg-white/10 hover:text-white"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-emerald-300"
+              >
+                Guardar cambios
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </>
