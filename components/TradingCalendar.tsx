@@ -112,15 +112,28 @@ export function TradingCalendar({ trades, onSelectTrade }: TradingCalendarProps)
           const dayTrades = trades.filter(
             (trade) => trade.date === date && trade.status === "Registrado"
           );
-          const latestTrade = dayTrades[0];
-          const dayDirection =
-  dayTrades.length > 1
-    ? dayTrades.every((trade) => trade.direction === dayTrades[0].direction)
-      ? dayTrades[0].direction
-      : "Mixto"
-    : latestTrade?.direction;
+          const uniqueDirections = [
+  ...new Set(dayTrades.map((trade) => trade.direction)),
+];
 
-          const dailyPnL = dayTrades.reduce(
+const directionLabel =
+  dayTrades.length === 0
+    ? "Sin trades"
+    : uniqueDirections.length === 1
+    ? uniqueDirections[0]
+    : "Mixto";
+
+const tradeCountLabel =
+  dayTrades.length === 1 ? "1 trade" : `${dayTrades.length} trades`;
+
+const calendarDayLabel =
+  dayTrades.length > 0
+    ? `${directionLabel} · ${tradeCountLabel}`
+    : "—";
+
+const latestTrade = dayTrades[0];
+
+const dailyPnL = dayTrades.reduce(
             (total, trade) => total + Number(trade.result || 0),
             0
           );
@@ -169,11 +182,11 @@ export function TradingCalendar({ trades, onSelectTrade }: TradingCalendarProps)
     {dailyPnL !== 0 ? `$${dailyPnL}` : "—"}
   </p>
 
-  {dayDirection && (
-    <p className="mt-1 text-xs font-medium text-white/40">
-      {dayDirection}
-    </p>
-  )}
+  {dayTrades.length > 0 && (
+  <p className="mt-1 text-xs font-medium text-white/40">
+    {calendarDayLabel}
+  </p>
+)}
 </div>
             </div>
           );

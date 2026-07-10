@@ -65,16 +65,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-        <p className="text-sm text-white/40">Estado del sistema</p>
-        <h3 className="mt-2 font-semibold">Construyendo versión 1.0</h3>
-
-        <div className="mt-4 h-2 rounded-full bg-white/10">
-          <div className="h-2 w-[24%] rounded-full bg-emerald-400" />
-        </div>
-
-        <p className="mt-3 text-xs text-white/40">24% de la base inicial</p>
-      </div>
+      
     </aside>
   );
 }

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import html2canvas from "html2canvas";
 import {
   BarChart3,
   CalendarDays,
   CircleDollarSign,
+  Download,
   Eye,
   ImageIcon,
   Pencil,
@@ -46,6 +48,131 @@ const storageKeys = {
   rrTarget: "lifeos-trading-rr-target",
   accounts: "lifeos-trading-accounts",
 };
+function createDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getCurrentWeekRange() {
+  const today = new Date();
+  const day = today.getDay();
+  const daysFromMonday = day === 0 ? 6 : day - 1;
+
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(today.getDate() - daysFromMonday);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  return {
+    start: createDateKey(start),
+    end: createDateKey(end),
+  };
+}
+
+function getWeekdayName(date: string) {
+  return new Intl.DateTimeFormat("es-ES", {
+    weekday: "long",
+  }).format(new Date(`${date}T00:00:00`));
+}
+
+function sanitizeFileName(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9áéíóúñü-]+/gi, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+function getExportColor(color: string) {
+  if (color.startsWith("#")) return color;
+
+  const colors: Record<string, string> = {
+    "text-emerald-400": "#34d399",
+    "text-red-400": "#f87171",
+    "text-blue-300": "#93c5fd",
+    "text-yellow-300": "#facc15",
+    "text-white": "#ffffff",
+  };
+
+  return colors[color] ?? "#ffffff";
+}
+
+function addDaysToDateKey(dateKey: string, daysToAdd: number) {
+  const date = new Date(`${dateKey}T00:00:00`);
+  date.setDate(date.getDate() + daysToAdd);
+
+  return createDateKey(date);
+}
+
+function getWeekCalendarDays(startDate: string) {
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = addDaysToDateKey(startDate, index);
+
+    return {
+      date,
+      day: Number(date.split("-")[2]),
+      isCurrentMonth: true,
+    };
+  });
+}
+
+function getMonthCalendarDays(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const monthDate = new Date(year, month - 1, 1);
+
+  const firstDayOfMonth = new Date(year, month - 1, 1);
+  const lastDayOfMonth = new Date(year, month, 0);
+
+  const startDay = firstDayOfMonth.getDay();
+  const totalDays = lastDayOfMonth.getDate();
+
+  const days: Array<{
+    date: string;
+    day: number;
+    isCurrentMonth: boolean;
+  }> = [];
+
+  const previousMonthLastDay = new Date(year, month - 1, 0).getDate();
+
+  for (let index = startDay - 1; index >= 0; index--) {
+    const day = previousMonthLastDay - index;
+    const date = new Date(year, month - 2, day);
+
+    days.push({
+      date: createDateKey(date),
+      day,
+      isCurrentMonth: false,
+    });
+  }
+
+  for (let day = 1; day <= totalDays; day++) {
+    const date = new Date(year, month - 1, day);
+
+    days.push({
+      date: createDateKey(date),
+      day,
+      isCurrentMonth: true,
+    });
+  }
+
+  const remainingDays = 42 - days.length;
+
+  for (let day = 1; day <= remainingDays; day++) {
+    const date = new Date(year, month, day);
+
+    days.push({
+      date: createDateKey(date),
+      day,
+      isCurrentMonth: false,
+    });
+  }
+
+  return days;
+}
 
 export function TradingJournalClient() {
   const [trades, setTrades] = useState<Trade[]>(initialTrades);
@@ -57,6 +184,9 @@ export function TradingJournalClient() {
   const [loaded, setLoaded] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isAccountsOpen, setIsAccountsOpen] = useState(false);
+  const selectedTradeExportRef = useRef<HTMLDivElement | null>(null);
+  const weeklyReportExportRef = useRef<HTMLDivElement | null>(null);
+const monthlyReportExportRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
   const savedTrades = localStorage.getItem(storageKeys.trades);
@@ -116,6 +246,49 @@ function deleteAccount(accountId: string) {
       currentTrade?.id === tradeId ? null : currentTrade
     );
   }
+  async function exportElementAsImage(
+  element: HTMLDivElement | null,
+  fileName: string
+) {
+  if (!element) return;
+
+  const canvas = await html2canvas(element, {
+    backgroundColor: "#080808",
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  });
+
+  const imageUrl = canvas.toDataURL("image/png");
+  const downloadLink = document.createElement("a");
+
+  downloadLink.href = imageUrl;
+  downloadLink.download = `${sanitizeFileName(fileName) || "lifeos-export"}.png`;
+  downloadLink.click();
+}
+
+function exportSelectedTradeAsImage() {
+  if (!selectedTrade) return;
+
+  exportElementAsImage(
+    selectedTradeExportRef.current,
+    `trade-${selectedTrade.date}-${selectedTrade.account}-${selectedTrade.asset}`
+  );
+}
+
+function exportWeeklyReportAsImage() {
+  exportElementAsImage(
+    weeklyReportExportRef.current,
+    `journal-semana-${currentWeekRange.start}-${currentWeekRange.end}`
+  );
+}
+
+function exportMonthlyReportAsImage() {
+  exportElementAsImage(
+    monthlyReportExportRef.current,
+    `journal-mes-${new Date().toISOString().slice(0, 7)}`
+  );
+}
 
   function updateRule(
     index: number,
@@ -204,10 +377,13 @@ const biggestLoss =
       )
     : null;
 
-function getMostRepeatedValue(field: "setup" | "emotion" | "account") {
+function getMostRepeatedValueFromTrades(
+  tradeList: Trade[],
+  field: "setup" | "emotion" | "account"
+) {
   const counts = new Map<string, number>();
 
-  registeredTrades.forEach((trade) => {
+  tradeList.forEach((trade) => {
     const value = trade[field]?.trim();
 
     if (!value) return;
@@ -226,6 +402,10 @@ function getMostRepeatedValue(field: "setup" | "emotion" | "account") {
   });
 
   return mostRepeated;
+}
+
+function getMostRepeatedValue(field: "setup" | "emotion" | "account") {
+  return getMostRepeatedValueFromTrades(registeredTrades, field);
 }
 
 const insightCards = [
@@ -278,6 +458,363 @@ const insightCards = [
     color: "text-blue-300",
   },
 ];
+const currentWeekRange = getCurrentWeekRange();
+
+const weeklyTrades = registeredTrades.filter(
+  (trade) =>
+    trade.date >= currentWeekRange.start && trade.date <= currentWeekRange.end
+);
+
+const weeklyPnL = weeklyTrades.reduce(
+  (total, trade) => total + Number(trade.result || 0),
+  0
+);
+
+const weeklyWinningTrades = weeklyTrades.filter(
+  (trade) => Number(trade.result) > 0
+);
+
+const weeklyWinRate =
+  weeklyTrades.length > 0
+    ? Math.round((weeklyWinningTrades.length / weeklyTrades.length) * 100)
+    : 0;
+
+const weeklyTradesByDate = weeklyTrades.reduce<
+  Record<string, { date: string; total: number; count: number }>
+>((totals, trade) => {
+  if (!totals[trade.date]) {
+    totals[trade.date] = {
+      date: trade.date,
+      total: 0,
+      count: 0,
+    };
+  }
+
+  totals[trade.date].total += Number(trade.result || 0);
+  totals[trade.date].count += 1;
+
+  return totals;
+}, {});
+
+const weeklyDailyResults = Object.values(weeklyTradesByDate);
+
+const weeklyBestDay =
+  weeklyDailyResults.length > 0
+    ? weeklyDailyResults.reduce((best, day) =>
+        day.total > best.total ? day : best
+      )
+    : null;
+
+const weeklyWorstDay =
+  weeklyDailyResults.length > 0
+    ? weeklyDailyResults.reduce((worst, day) =>
+        day.total < worst.total ? day : worst
+      )
+    : null;
+
+const weeklyReportCards = [
+  {
+    label: "Trades semana",
+    value: `${weeklyTrades.length}`,
+    description: `${currentWeekRange.start} a ${currentWeekRange.end}`,
+    color: "text-white",
+  },
+  {
+    label: "P&L semanal",
+    value: `$${weeklyPnL}`,
+    description: "Resultado total de la semana",
+    color: weeklyPnL >= 0 ? "text-emerald-400" : "text-red-400",
+  },
+  {
+    label: "Win Rate semanal",
+    value: `${weeklyWinRate}%`,
+    description: `${weeklyWinningTrades.length} ganadas de ${weeklyTrades.length}`,
+    color: "text-blue-300",
+  },
+  {
+    label: "Mejor día",
+    value: weeklyBestDay ? `$${weeklyBestDay.total}` : "—",
+    description: weeklyBestDay
+      ? `${getWeekdayName(weeklyBestDay.date)} · ${weeklyBestDay.date}`
+      : "Sin datos",
+    color: "text-emerald-400",
+  },
+  {
+    label: "Peor día",
+    value: weeklyWorstDay ? `$${weeklyWorstDay.total}` : "—",
+    description: weeklyWorstDay
+      ? `${getWeekdayName(weeklyWorstDay.date)} · ${weeklyWorstDay.date}`
+      : "Sin datos",
+    color: "text-red-400",
+  },
+  {
+    label: "Setup semanal",
+    value: getMostRepeatedValueFromTrades(weeklyTrades, "setup"),
+    description: "Setup más repetido esta semana",
+    color: "text-yellow-300",
+  },
+];
+const currentMonthKey = new Date().toISOString().slice(0, 7);
+
+const monthlyTrades = registeredTrades.filter((trade) =>
+  trade.date.startsWith(currentMonthKey)
+);
+
+const monthlyPnL = monthlyTrades.reduce(
+  (total, trade) => total + Number(trade.result || 0),
+  0
+);
+
+const monthlyWinningTrades = monthlyTrades.filter(
+  (trade) => Number(trade.result) > 0
+);
+
+const monthlyWinRate =
+  monthlyTrades.length > 0
+    ? Math.round((monthlyWinningTrades.length / monthlyTrades.length) * 100)
+    : 0;
+
+const monthlyTradesByDate = monthlyTrades.reduce<
+  Record<string, { date: string; total: number; count: number }>
+>((totals, trade) => {
+  if (!totals[trade.date]) {
+    totals[trade.date] = {
+      date: trade.date,
+      total: 0,
+      count: 0,
+    };
+  }
+
+  totals[trade.date].total += Number(trade.result || 0);
+  totals[trade.date].count += 1;
+
+  return totals;
+}, {});
+
+const monthlyDailyResults = Object.values(monthlyTradesByDate);
+
+const monthlyBestDay =
+  monthlyDailyResults.length > 0
+    ? monthlyDailyResults.reduce((best, day) =>
+        day.total > best.total ? day : best
+      )
+    : null;
+
+const monthlyWorstDay =
+  monthlyDailyResults.length > 0
+    ? monthlyDailyResults.reduce((worst, day) =>
+        day.total < worst.total ? day : worst
+      )
+    : null;
+
+const monthlyReportCards = [
+  {
+    label: "Trades del mes",
+    value: `${monthlyTrades.length}`,
+    description: currentMonthKey,
+    color: monthlyTrades.length > 0 ? "#ffffff" : "#9ca3af",
+  },
+  {
+    label: "P&L mensual",
+    value: `$${monthlyPnL}`,
+    description: "Resultado total del mes",
+    color: monthlyPnL >= 0 ? "#34d399" : "#f87171",
+  },
+  {
+    label: "Win Rate mensual",
+    value: `${monthlyWinRate}%`,
+    description: `${monthlyWinningTrades.length} ganadas de ${monthlyTrades.length}`,
+    color: "#93c5fd",
+  },
+  {
+    label: "Mejor día",
+    value: monthlyBestDay ? `$${monthlyBestDay.total}` : "—",
+    description: monthlyBestDay
+      ? `${getWeekdayName(monthlyBestDay.date)} · ${monthlyBestDay.date}`
+      : "Sin datos",
+    color: "#34d399",
+  },
+  {
+    label: "Peor día",
+    value: monthlyWorstDay ? `$${monthlyWorstDay.total}` : "—",
+    description: monthlyWorstDay
+      ? `${getWeekdayName(monthlyWorstDay.date)} · ${monthlyWorstDay.date}`
+      : "Sin datos",
+    color: "#f87171",
+  },
+  {
+    label: "Setup del mes",
+    value: getMostRepeatedValueFromTrades(monthlyTrades, "setup"),
+    description: "Setup más repetido este mes",
+    color: "#facc15",
+  },
+];
+const weeklyExportDays = getWeekCalendarDays(currentWeekRange.start);
+const monthlyExportDays = getMonthCalendarDays(currentMonthKey);
+
+function renderExportCalendar(
+  days: Array<{ date: string; day: number; isCurrentMonth: boolean }>,
+  tradeList: Trade[],
+  type: "week" | "month"
+) {
+  const weekLabels =
+    type === "month"
+      ? ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+      : days.map((day) =>
+          getWeekdayName(day.date).slice(0, 3).toUpperCase()
+        );
+
+  return (
+    <div style={{ marginBottom: "28px" }}>
+      <p
+        style={{
+          color: "#9ca3af",
+          fontSize: "15px",
+          margin: "0 0 12px",
+        }}
+      >
+        Calendario de operaciones
+      </p>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: "10px",
+          marginBottom: "10px",
+        }}
+      >
+        {weekLabels.map((label) => (
+          <div
+            key={label}
+            style={{
+              color: "#71717a",
+              fontSize: "12px",
+              fontWeight: 700,
+              textAlign: "center",
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: "10px",
+        }}
+      >
+        {days.map((day) => {
+          const dayTrades = tradeList.filter((trade) => trade.date === day.date);
+
+          const dayPnL = dayTrades.reduce(
+            (total, trade) => total + Number(trade.result || 0),
+            0
+          );
+
+          const isPositive = dayPnL > 0;
+          const isNegative = dayPnL < 0;
+const uniqueDirections = [
+  ...new Set(dayTrades.map((trade) => trade.direction)),
+];
+
+const directionLabel =
+  dayTrades.length === 0
+    ? "Sin trades"
+    : uniqueDirections.length === 1
+    ? uniqueDirections[0]
+    : "Mixto";
+
+const tradeCountLabel =
+  dayTrades.length === 1 ? "1 trade" : `${dayTrades.length} trades`;
+
+const calendarDayLabel =
+  dayTrades.length > 0 ? `${directionLabel} · ${tradeCountLabel}` : "Sin trades";
+          return (
+            <div
+              key={day.date}
+              style={{
+                minHeight: type === "month" ? "110px" : "140px",
+                border: `1px solid ${
+                  isPositive
+                    ? "#064e3b"
+                    : isNegative
+                    ? "#7f1d1d"
+                    : "#27272a"
+                }`,
+                background: isPositive
+                  ? "#022c22"
+                  : isNegative
+                  ? "#450a0a"
+                  : "#000000",
+                borderRadius: "18px",
+                padding: "14px",
+                opacity: day.isCurrentMonth ? 1 : 0.35,
+              }}
+            >
+              <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    marginBottom: "12px",
+  }}
+>
+  <span
+    style={{
+      color: "#ffffff",
+      fontSize: "18px",
+      fontWeight: 800,
+    }}
+  >
+    {day.day}
+  </span>
+</div>
+
+{dayTrades.length > 0 ? (
+  <>
+    <p
+      style={{
+        color: isPositive ? "#34d399" : "#f87171",
+        fontSize: "20px",
+        fontWeight: 800,
+        margin: "0 0 8px",
+      }}
+    >
+      ${dayPnL}
+    </p>
+
+    <p
+      style={{
+        color: "#a1a1aa",
+        fontSize: "12px",
+        margin: 0,
+      }}
+    >
+     {calendarDayLabel}
+    </p>
+  </>
+) : (
+  
+  <p
+    style={{
+      color: "#3f3f46",
+      fontSize: "12px",
+      margin: 0,
+    }}
+  >
+    Sin trades
+  </p>
+)}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
   const tradingStats = [
     {
@@ -421,10 +958,20 @@ const insightCards = [
         <TradingCalendar trades={trades} onSelectTrade={setSelectedTrade} />
       </div>
       <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-  <div className="mb-6">
+  <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+  <div>
     <p className="text-sm text-white/40">Análisis del journal</p>
     <h3 className="mt-1 text-2xl font-bold">Estadísticas clave</h3>
   </div>
+
+  <button
+    onClick={exportMonthlyReportAsImage}
+    className="inline-flex w-fit items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/90"
+  >
+    <Download size={16} />
+    Exportar mes
+  </button>
+</div>
 
   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
     {insightCards.map((card) => (
@@ -443,6 +990,48 @@ const insightCards = [
     ))}
   </div>
 </div>
+      <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
+        <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-sm text-white/40">Revisión automática</p>
+            <h3 className="mt-1 text-2xl font-bold">Reporte semanal</h3>
+            <p className="mt-2 text-sm text-white/40">
+              Resumen de tus operaciones desde el lunes hasta el domingo.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+  <span className="rounded-full border border-white/10 bg-black/40 px-4 py-2 text-xs font-semibold text-white/50">
+    {currentWeekRange.start} → {currentWeekRange.end}
+  </span>
+
+  <button
+    onClick={exportWeeklyReportAsImage}
+    className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/90"
+  >
+    <Download size={16} />
+    Exportar semana
+  </button>
+</div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {weeklyReportCards.map((card) => (
+            <div
+              key={card.label}
+              className="rounded-2xl border border-white/10 bg-black/40 p-4"
+            >
+              <p className="text-xs text-white/40">{card.label}</p>
+              <p className={`mt-2 text-xl font-bold ${card.color}`}>
+                {card.value}
+              </p>
+              <p className="mt-1 truncate text-xs text-white/35">
+                {card.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 xl:col-span-2">
@@ -643,6 +1232,259 @@ const insightCards = [
     </div>
   </div>
 )}
+      <div
+        style={{
+          position: "fixed",
+          left: "-99999px",
+          top: "0",
+          width: "1100px",
+          background: "#080808",
+          color: "#ffffff",
+          padding: "32px",
+          fontFamily: "Arial, sans-serif",
+        }}
+      >
+        <div
+          ref={weeklyReportExportRef}
+          style={{
+            width: "100%",
+            background: "#080808",
+            border: "1px solid #27272a",
+            borderRadius: "24px",
+            padding: "28px",
+          }}
+        >
+          <p style={{ color: "#9ca3af", fontSize: "14px", margin: 0 }}>
+            Life OS Trading Journal
+          </p>
+
+          <h1 style={{ fontSize: "32px", margin: "8px 0 4px" }}>
+            Reporte semanal
+          </h1>
+
+          <p style={{ color: "#9ca3af", margin: "0 0 24px" }}>
+            {currentWeekRange.start} → {currentWeekRange.end}
+          </p>
+{renderExportCalendar(weeklyExportDays, weeklyTrades, "week")}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "14px",
+            }}
+          >
+            {weeklyReportCards.map((card) => (
+              <div
+                key={card.label}
+                style={{
+                  border: "1px solid #27272a",
+                  background: "#000000",
+                  borderRadius: "18px",
+                  padding: "18px",
+                }}
+              >
+                <p style={{ color: "#9ca3af", fontSize: "13px", margin: 0 }}>
+                  {card.label}
+                </p>
+
+                <p
+                  style={{
+                    color: getExportColor(card.color),
+                    fontSize: "26px",
+                    fontWeight: 800,
+                    margin: "10px 0 4px",
+                  }}
+                >
+                  {card.value}
+                </p>
+
+                <p style={{ color: "#71717a", fontSize: "12px", margin: 0 }}>
+                  {card.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div
+          ref={monthlyReportExportRef}
+          style={{
+            width: "100%",
+            marginTop: "32px",
+            background: "#080808",
+            border: "1px solid #27272a",
+            borderRadius: "24px",
+            padding: "28px",
+          }}
+        >
+          <p style={{ color: "#9ca3af", fontSize: "14px", margin: 0 }}>
+            Life OS Trading Journal
+          </p>
+
+          <h1 style={{ fontSize: "32px", margin: "8px 0 4px" }}>
+            Reporte mensual
+          </h1>
+
+          <p style={{ color: "#9ca3af", margin: "0 0 24px" }}>
+            {currentMonthKey}
+          </p>
+{renderExportCalendar(monthlyExportDays, monthlyTrades, "month")}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "14px",
+            }}
+          >
+            {monthlyReportCards.map((card) => (
+              <div
+                key={card.label}
+                style={{
+                  border: "1px solid #27272a",
+                  background: "#000000",
+                  borderRadius: "18px",
+                  padding: "18px",
+                }}
+              >
+                <p style={{ color: "#9ca3af", fontSize: "13px", margin: 0 }}>
+                  {card.label}
+                </p>
+
+                <p
+                  style={{
+                    color: card.color,
+                    fontSize: "26px",
+                    fontWeight: 800,
+                    margin: "10px 0 4px",
+                  }}
+                >
+                  {card.value}
+                </p>
+
+                <p style={{ color: "#71717a", fontSize: "12px", margin: 0 }}>
+                  {card.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {selectedTrade && (
+          <div
+            ref={selectedTradeExportRef}
+            style={{
+              width: "100%",
+              marginTop: "32px",
+              background: "#080808",
+              border: "1px solid #27272a",
+              borderRadius: "24px",
+              padding: "28px",
+            }}
+          >
+            <p style={{ color: "#9ca3af", fontSize: "14px", margin: 0 }}>
+              Life OS Trading Journal
+            </p>
+
+            <h1 style={{ fontSize: "32px", margin: "8px 0 4px" }}>
+              Trade report
+            </h1>
+
+            <p style={{ color: "#9ca3af", margin: "0 0 24px" }}>
+              {selectedTrade.date} · {selectedTrade.account} ·{" "}
+              {selectedTrade.asset} · {selectedTrade.direction}
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "14px",
+                marginBottom: "18px",
+              }}
+            >
+              <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px" }}>
+                <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
+                  Dirección
+                </p>
+                <p style={{ fontSize: "18px", fontWeight: 800, margin: "8px 0 0" }}>
+                  {selectedTrade.direction}
+                </p>
+              </div>
+
+              <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px" }}>
+                <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
+                  Riesgo
+                </p>
+                <p style={{ fontSize: "18px", fontWeight: 800, margin: "8px 0 0" }}>
+                  ${selectedTrade.risk}
+                </p>
+              </div>
+
+              <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px" }}>
+                <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
+                  Resultado
+                </p>
+                <p
+                  style={{
+                    color: Number(selectedTrade.result) >= 0 ? "#34d399" : "#f87171",
+                    fontSize: "18px",
+                    fontWeight: 800,
+                    margin: "8px 0 0",
+                  }}
+                >
+                  ${selectedTrade.result}
+                </p>
+              </div>
+
+              <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px" }}>
+                <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
+                  Emoción
+                </p>
+                <p style={{ fontSize: "18px", fontWeight: 800, margin: "8px 0 0" }}>
+                  {selectedTrade.emotion}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px", marginBottom: "18px" }}>
+              <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
+                Setup
+              </p>
+              <p style={{ fontSize: "16px", fontWeight: 700, margin: "8px 0 0" }}>
+                {selectedTrade.setup || "Sin setup registrado."}
+              </p>
+            </div>
+
+            <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px", marginBottom: "18px" }}>
+              <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
+                Notas
+              </p>
+              <p style={{ color: "#d4d4d8", fontSize: "15px", margin: "8px 0 0", whiteSpace: "pre-line" }}>
+                {selectedTrade.notes || "Sin notas registradas."}
+              </p>
+            </div>
+
+            {selectedTrade.image && (
+              <div style={{ border: "1px solid #27272a", borderRadius: "16px", padding: "16px" }}>
+                <p style={{ color: "#9ca3af", fontSize: "12px", margin: "0 0 12px" }}>
+                  Imagen del trade
+                </p>
+
+                <img
+                  src={selectedTrade.image}
+                  alt="Imagen del trade"
+                  style={{
+                    width: "100%",
+                    maxHeight: "620px",
+                    objectFit: "contain",
+                    borderRadius: "14px",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
       {selectedTrade && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -657,12 +1499,22 @@ const insightCards = [
 </p>
               </div>
 
-              <button
-                onClick={() => setSelectedTrade(null)}
-                className="rounded-2xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2" data-html2canvas-ignore="true">
+  <button
+    onClick={exportSelectedTradeAsImage}
+    className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400 px-4 py-2 text-sm font-bold text-black transition hover:bg-emerald-300"
+  >
+    <Download size={16} />
+    Exportar PNG
+  </button>
+
+  <button
+    onClick={() => setSelectedTrade(null)}
+    className="rounded-2xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
+  >
+    <X size={20} />
+  </button>
+</div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-4">
