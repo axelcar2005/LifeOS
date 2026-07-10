@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   BookOpen,
   Brain,
@@ -183,14 +183,14 @@ export function StudyClient() {
     const savedTasks = localStorage.getItem(tasksStorageKey);
 
     if (savedSubjects) {
-      const parsedSubjects = JSON.parse(savedSubjects) as StudySubject[];
+  const parsedSubjects = JSON.parse(savedSubjects) as StudySubject[];
 
-      if (Array.isArray(parsedSubjects) && parsedSubjects.length > 0) {
-        setSubjects(parsedSubjects);
-        setSessionForm(createInitialSessionForm(parsedSubjects));
-        setTaskForm(createInitialTaskForm(parsedSubjects));
-      }
-    }
+  if (Array.isArray(parsedSubjects)) {
+    setSubjects(parsedSubjects);
+    setSessionForm(createInitialSessionForm(parsedSubjects));
+    setTaskForm(createInitialTaskForm(parsedSubjects));
+  }
+}
 
     if (savedSessions) {
       const parsedSessions = JSON.parse(savedSessions) as StudySession[];
@@ -259,15 +259,17 @@ export function StudyClient() {
     (task) => task.status === "Completada"
   );
 
-  const focusScores = monthlySessions
-    .map((session) => getFocusScore(session.focus))
-    .filter((score) => score > 0);
+  const focusScores: number[] = monthlySessions
+  .map((session) => getFocusScore(session.focus))
+  .filter((score) => score > 0);
 
-  const averageFocus =
-    focusScores.length > 0
-      ? focusScores.reduce((total, score) => total + score, 0) /
-        focusScores.length
-      : null;
+const totalFocusScore = focusScores.reduce(
+  (total: number, score: number) => total + score,
+  0
+);
+
+const averageFocus =
+  focusScores.length > 0 ? totalFocusScore / focusScores.length : null;
 
   const mostStudiedSubject = getMostStudiedSubject(subjects, monthlySessions);
 
