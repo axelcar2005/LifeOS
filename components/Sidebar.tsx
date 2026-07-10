@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   Dumbbell,
+  GraduationCap,
   LayoutDashboard,
   LineChart,
   Sparkles,
@@ -19,7 +20,7 @@ const menuItems = [
   { name: "Trading", href: "/trading", icon: LineChart },
   { name: "Finanzas", href: "/finanzas", icon: Wallet },
   { name: "Salud", href: "/salud", icon: Dumbbell },
-  { name: "Nutrición", href: "/nutricion", icon: Utensils },
+  { name: "Estudios", href: "/estudios", icon: GraduationCap },
   { name: "Calendario", href: "/calendario", icon: CalendarDays },
   { name: "Objetivos", href: "/objetivos", icon: Target },
 ];
