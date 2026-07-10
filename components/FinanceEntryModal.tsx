@@ -11,11 +11,13 @@ export type FinanceMovement = {
   amount: string;
   method: string;
   note: string;
+  goalId?: string;
 };
 
 type FinanceEntryModalProps = {
   onAddMovement: (movement: FinanceMovement) => void;
 };
+
 
 function getTodayDate() {
   const today = new Date();
@@ -94,7 +96,7 @@ export function FinanceEntryModal({ onAddMovement }: FinanceEntryModalProps) {
               </button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm text-white/50">Fecha</label>
                 <input

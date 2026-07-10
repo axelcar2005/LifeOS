@@ -680,7 +680,7 @@ export function HealthClient() {
           </p>
         </section>
       ) : (
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
           {activeHealthCards.map((card) => {
             const Icon = card.icon;
             const value = featuredLog?.values?.[card.id] ?? "";
@@ -752,7 +752,7 @@ export function HealthClient() {
             </span>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
             {activeSportCards.map((card) => {
               const Icon = card.icon;
               const value = featuredLog?.values?.[card.id] ?? "";
@@ -812,7 +812,7 @@ export function HealthClient() {
             })}
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
               <p className="text-xs text-white/40">Días entrenados</p>
               <p className="mt-2 text-2xl font-bold text-emerald-400">
@@ -871,7 +871,7 @@ export function HealthClient() {
           </span>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
             <p className="text-xs text-white/40">Días registrados</p>
             <p className="mt-2 text-2xl font-bold text-white">
@@ -1057,7 +1057,7 @@ export function HealthClient() {
               </button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
               {healthCards.map((card) => {
                 const Icon = card.icon;
                 const cardSetting = settings[card.id];
@@ -1164,7 +1164,7 @@ export function HealthClient() {
               </button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
               <label className="space-y-2">
                 <span className="text-xs text-white/40">Fecha</span>
 

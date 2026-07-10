@@ -447,7 +447,7 @@ const averageFocus =
         </div>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {summaryCards.map((card) => {
           const Icon = card.icon;
 
@@ -489,7 +489,7 @@ const averageFocus =
           <p className="text-sm text-white/40">{subjects.length} materias</p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {subjects.map((subject) => {
             const subjectSessions = monthlySessions.filter(
               (session) => session.subjectId === subject.id
@@ -654,7 +654,7 @@ const averageFocus =
           </span>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
             <p className="text-xs text-white/40">Horas estudiadas</p>
             <p className="mt-2 text-2xl font-bold text-sky-300">
@@ -852,7 +852,7 @@ const averageFocus =
               </button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
               <label className="space-y-2">
                 <span className="text-xs text-white/40">Fecha</span>
                 <input
@@ -1006,7 +1006,7 @@ const averageFocus =
               </button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
               <label className="space-y-2 md:col-span-2">
                 <span className="text-xs text-white/40">Título</span>
                 <input

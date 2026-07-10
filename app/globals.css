@@ -32,3 +32,19 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+/* Evita que el overlay de Next Dev Tools bloquee taps en celular */
+nextjs-portal {
+  pointer-events: none !important;
+}
+/* Fix móvil: cuando hay modal abierto, oculta header y navbar de celular */
+@media (max-width: 1023px) {
+  body:has(.lifeos-modal) .lifeos-mobile-header,
+  body:has(.lifeos-modal) .lifeos-mobile-nav {
+    display: none !important;
+  }
+}
+
+/* Evita que el overlay de Next Dev Tools bloquee taps en celular */
+nextjs-portal {
+  pointer-events: none !important;
+}

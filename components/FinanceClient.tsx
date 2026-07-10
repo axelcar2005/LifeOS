@@ -193,7 +193,7 @@ const reportMessage =
         <FinanceEntryModal onAddMovement={addMovement} />
       </header>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {summaryCards.map((card) => {
           const Icon = card.icon;
 
@@ -235,7 +235,7 @@ const reportMessage =
     </span>
   </div>
 
-  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+  <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
     <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
       <p className="text-xs text-white/40">Balance del mes</p>
       <p

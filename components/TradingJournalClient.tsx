@@ -1028,7 +1028,7 @@ export function TradingJournalClient() {
         />
       </header>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
         {tradingStats.map((stat) => {
           const Icon = stat.icon;
 
@@ -1036,7 +1036,7 @@ export function TradingJournalClient() {
             return (
               <div
                 key={stat.title}
-                className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 transition hover:-translate-y-1 hover:bg-white/[0.05]"
+                className="min-w-0 rounded-3xl border border-white/10 bg-white/[0.035] p-3 transition hover:-translate-y-1 hover:bg-white/[0.05] sm:p-5 lg:p-6"
               >
                 <div className="mb-5 flex items-center justify-between">
                   <p className="text-sm text-white/40">{stat.title}</p>
@@ -1064,7 +1064,7 @@ export function TradingJournalClient() {
                     <option>1:5</option>
                   </select>
                 ) : (
-                  <h3 className="text-3xl font-bold text-orange-300">
+                  <h3 className="truncate text-xl font-bold text-orange-300 sm:text-3xl">
                     {rrTarget}
                   </h3>
                 )}
@@ -1101,7 +1101,7 @@ export function TradingJournalClient() {
 
           <button
             onClick={() => setIsAccountsOpen(true)}
-            className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-emerald-300"
+            className="w-full rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-emerald-300 sm:w-fit"
           >
             Ver cuentas
           </button>
@@ -1190,316 +1190,448 @@ export function TradingJournalClient() {
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 xl:col-span-2">
-          <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <p className="text-sm text-white/40">Registro</p>
-              <h3 className="text-2xl font-bold">Últimas operaciones</h3>
-              <p className="mt-2 text-sm text-white/40">
-                Usa filtros para revisar solo pérdidas, setups, emociones o
-                cuentas específicas.
-              </p>
-            </div>
+  <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 md:p-6 xl:col-span-2">
+    <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <div>
+        <p className="text-sm text-white/40">Registro</p>
+        <h3 className="text-2xl font-bold">Últimas operaciones</h3>
+        <p className="mt-2 text-sm text-white/40">
+          Usa filtros para revisar solo pérdidas, setups, emociones o cuentas
+          específicas.
+        </p>
+      </div>
 
-            <span className="rounded-full bg-white/10 px-4 py-2 text-xs text-white/60">
-              {filteredTrades.length} de {trades.length} trades
-            </span>
-          </div>
+      <span className="w-fit rounded-full bg-white/10 px-4 py-2 text-xs text-white/60">
+        {filteredTrades.length} de {trades.length} trades
+      </span>
+    </div>
 
-          <div className="mb-5 rounded-3xl border border-white/10 bg-black/30 p-4">
-            <div className="mb-4 flex items-center gap-2">
-              <Search size={16} className="text-emerald-400" />
-              <p className="text-sm font-bold text-white">Filtros</p>
-            </div>
+    {/* Mobile: filtros rápidos + tarjetas */}
+    <div className="md:hidden">
+      <div className="mb-5">
+        <p className="mb-3 text-sm font-bold text-white">Filtros rápidos</p>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <select
-                value={filters.account}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    account: event.target.value,
-                  }))
-                }
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
-              >
-                <option>Todos</option>
-                {accountOptions.map((account) => (
-                  <option key={account}>{account}</option>
-                ))}
-              </select>
+        <div className="grid grid-cols-2 gap-2">
+          <select
+            value={filters.result}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                result: event.target.value,
+              }))
+            }
+            className="rounded-2xl border border-white/10 bg-black/40 px-3 py-3 text-xs text-white outline-none focus:border-emerald-400"
+          >
+            <option>Todos</option>
+            <option>Ganadas</option>
+            <option>Perdidas</option>
+            <option>BE</option>
+          </select>
 
-              <select
-                value={filters.asset}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    asset: event.target.value,
-                  }))
-                }
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
-              >
-                <option>Todos</option>
-                {assetOptions.map((asset) => (
-                  <option key={asset}>{asset}</option>
-                ))}
-              </select>
+          <select
+            value={filters.direction}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                direction: event.target.value,
+              }))
+            }
+            className="rounded-2xl border border-white/10 bg-black/40 px-3 py-3 text-xs text-white outline-none focus:border-emerald-400"
+          >
+            <option>Todos</option>
+            <option>Long</option>
+            <option>Short</option>
+          </select>
 
-              <select
-                value={filters.direction}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    direction: event.target.value,
-                  }))
-                }
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
-              >
-                <option>Todos</option>
-                <option>Long</option>
-                <option>Short</option>
-              </select>
-
-              <select
-                value={filters.result}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    result: event.target.value,
-                  }))
-                }
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
-              >
-                <option>Todos</option>
-                <option>Ganadas</option>
-                <option>Perdidas</option>
-                <option>BE</option>
-              </select>
-
-              <select
-                value={filters.setup}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    setup: event.target.value,
-                  }))
-                }
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
-              >
-                <option>Todos</option>
-                {setupOptions.map((setup) => (
-                  <option key={setup}>{setup}</option>
-                ))}
-              </select>
-
-              <select
-                value={filters.emotion}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    emotion: event.target.value,
-                  }))
-                }
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
-              >
-                <option>Todos</option>
-                {emotionOptions.map((emotion) => (
-                  <option key={emotion}>{emotion}</option>
-                ))}
-              </select>
-
-              <select
-                value={filters.month}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    month: event.target.value,
-                  }))
-                }
-                className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
-              >
-                <option>Todos</option>
-                {availableMonths.map((month) => (
-                  <option key={month}>{month}</option>
-                ))}
-              </select>
-
-              <button
-                onClick={resetFilters}
-                className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-bold text-white/60 transition hover:bg-white/10 hover:text-white"
-              >
-                Limpiar filtros
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-white/10">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-white/[0.04] text-white/40">
-                <tr>
-                  <th className="px-4 py-4 font-medium">Fecha</th>
-                  <th className="px-4 py-4 font-medium">Cuenta</th>
-                  <th className="px-4 py-4 font-medium">Setup</th>
-                  <th className="px-4 py-4 font-medium">Resultado</th>
-                  <th className="px-4 py-4 font-medium">Imagen</th>
-                  <th className="px-4 py-4 font-medium">Acción</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredTrades.length === 0 ? (
-                  <tr className="border-t border-white/10">
-                    <td
-                      colSpan={6}
-                      className="px-4 py-10 text-center text-white/40"
-                    >
-                      No hay operaciones con esos filtros.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTrades.map((trade) => {
-                    const resultNumber = Number(trade.result);
-
-                    return (
-                      <tr key={trade.id} className="border-t border-white/10">
-                        <td className="px-4 py-4 text-white/60">
-                          {trade.date}
-                        </td>
-                        <td className="px-4 py-4 text-white">
-                          {trade.account}
-                        </td>
-                        <td className="px-4 py-4 text-white/60">
-                          {trade.setup}
-                        </td>
-                        <td
-                          className={`px-4 py-4 ${
-                            resultNumber >= 0
-                              ? "text-emerald-400"
-                              : "text-red-400"
-                          }`}
-                        >
-                          ${trade.result}
-                        </td>
-                        <td className="px-4 py-4">
-                          {trade.image ? (
-                            <ImageIcon size={16} className="text-emerald-400" />
-                          ) : (
-                            <span className="text-white/20">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setSelectedTrade(trade)}
-                              className="rounded-xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
-                              title="Ver detalle"
-                            >
-                              <Eye size={16} />
-                            </button>
-
-                            <button
-                              onClick={() => openEditTrade(trade)}
-                              className="rounded-xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
-                              title="Editar operación"
-                            >
-                              <Pencil size={16} />
-                            </button>
-
-                            <button
-                              onClick={() => deleteTrade(trade.id)}
-                              className="rounded-xl bg-red-400/10 p-2 text-red-400 transition hover:bg-red-400/20"
-                              title="Borrar operación"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-          <div className="mb-6 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                <CalendarDays size={20} className="text-emerald-400" />
-              </div>
-
-              <div>
-                <p className="text-sm text-white/40">Plan diario</p>
-                <h3 className="text-xl font-bold">Reglas del día</h3>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setEditingRules(!editingRules)}
-              className="rounded-2xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
-              title="Editar reglas"
-            >
-              {editingRules ? <Save size={18} /> : <Pencil size={18} />}
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {rules.map((rule, index) => (
-              <div
-                key={index}
-                className="rounded-2xl border border-white/10 bg-black/40 p-4"
-              >
-                {editingRules ? (
-                  <div className="space-y-3">
-                    <input
-                      value={rule.title}
-                      onChange={(event) =>
-                        updateRule(index, "title", event.target.value)
-                      }
-                      className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-emerald-400"
-                    />
-
-                    <textarea
-                      value={rule.description}
-                      onChange={(event) =>
-                        updateRule(index, "description", event.target.value)
-                      }
-                      rows={2}
-                      className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-white/70 outline-none focus:border-emerald-400"
-                    />
-
-                    <button
-                      onClick={() => deleteRule(index)}
-                      className="flex items-center gap-2 text-xs text-red-400 transition hover:text-red-300"
-                    >
-                      <X size={14} />
-                      Borrar regla
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-sm font-semibold">{rule.title}</p>
-                    <p className="mt-1 text-sm text-white/40">
-                      {rule.description}
-                    </p>
-                  </>
-                )}
-              </div>
+          <select
+            value={filters.month}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                month: event.target.value,
+              }))
+            }
+            className="rounded-2xl border border-white/10 bg-black/40 px-3 py-3 text-xs text-white outline-none focus:border-emerald-400"
+          >
+            <option>Todos</option>
+            {availableMonths.map((month) => (
+              <option key={month}>{month}</option>
             ))}
-          </div>
+          </select>
 
-          {editingRules && (
-            <button
-              onClick={addRule}
-              className="mt-4 w-full rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-white/60 transition hover:bg-white/5 hover:text-white"
-            >
-              + Agregar regla
-            </button>
-          )}
+          <button
+            onClick={resetFilters}
+            className="rounded-2xl border border-white/10 px-3 py-3 text-xs font-bold text-white/60 transition hover:bg-white/10 hover:text-white"
+          >
+            Limpiar
+          </button>
         </div>
       </div>
+
+      <div className="space-y-3">
+        {filteredTrades.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/40">
+            No hay operaciones registradas.
+          </div>
+        ) : (
+          filteredTrades.map((trade) => {
+            const resultNumber = Number(trade.result);
+
+            return (
+              <div
+                key={trade.id}
+                className="rounded-2xl border border-white/10 bg-black/35 p-4"
+              >
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-white">
+                      {trade.date}
+                    </p>
+
+                    <p className="mt-1 truncate text-xs text-white/40">
+                      {trade.account} · {trade.asset} · {trade.direction}
+                    </p>
+                  </div>
+
+                  <p
+                    className={`shrink-0 text-lg font-bold ${
+                      resultNumber >= 0 ? "text-emerald-400" : "text-red-400"
+                    }`}
+                  >
+                    ${trade.result}
+                  </p>
+                </div>
+
+                <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-xs text-white/35">Setup</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-white/75">
+                    {trade.setup || "Sin setup"}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/45">
+                    {trade.emotion || "Sin emoción"}
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSelectedTrade(trade)}
+                      className="rounded-xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
+                      title="Ver detalle"
+                    >
+                      <Eye size={16} />
+                    </button>
+
+                    <button
+                      onClick={() => openEditTrade(trade)}
+                      className="rounded-xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
+                      title="Editar operación"
+                    >
+                      <Pencil size={16} />
+                    </button>
+
+                    <button
+                      onClick={() => deleteTrade(trade.id)}
+                      className="rounded-xl bg-red-400/10 p-2 text-red-400 transition hover:bg-red-400/20"
+                      title="Borrar operación"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+
+    {/* Desktop: filtros completos */}
+    <div className="mb-5 hidden rounded-3xl border border-white/10 bg-black/30 p-4 md:block">
+      <div className="mb-4 flex items-center gap-2">
+        <Search size={16} className="text-emerald-400" />
+        <p className="text-sm font-bold text-white">Filtros</p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <select
+          value={filters.account}
+          onChange={(event) =>
+            setFilters((current) => ({
+              ...current,
+              account: event.target.value,
+            }))
+          }
+          className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+        >
+          <option>Todos</option>
+          {accountOptions.map((account) => (
+            <option key={account}>{account}</option>
+          ))}
+        </select>
+
+        <select
+          value={filters.asset}
+          onChange={(event) =>
+            setFilters((current) => ({
+              ...current,
+              asset: event.target.value,
+            }))
+          }
+          className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+        >
+          <option>Todos</option>
+          {assetOptions.map((asset) => (
+            <option key={asset}>{asset}</option>
+          ))}
+        </select>
+
+        <select
+          value={filters.direction}
+          onChange={(event) =>
+            setFilters((current) => ({
+              ...current,
+              direction: event.target.value,
+            }))
+          }
+          className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+        >
+          <option>Todos</option>
+          <option>Long</option>
+          <option>Short</option>
+        </select>
+
+        <select
+          value={filters.result}
+          onChange={(event) =>
+            setFilters((current) => ({
+              ...current,
+              result: event.target.value,
+            }))
+          }
+          className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+        >
+          <option>Todos</option>
+          <option>Ganadas</option>
+          <option>Perdidas</option>
+          <option>BE</option>
+        </select>
+
+        <select
+          value={filters.setup}
+          onChange={(event) =>
+            setFilters((current) => ({
+              ...current,
+              setup: event.target.value,
+            }))
+          }
+          className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+        >
+          <option>Todos</option>
+          {setupOptions.map((setup) => (
+            <option key={setup}>{setup}</option>
+          ))}
+        </select>
+
+        <select
+          value={filters.emotion}
+          onChange={(event) =>
+            setFilters((current) => ({
+              ...current,
+              emotion: event.target.value,
+            }))
+          }
+          className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+        >
+          <option>Todos</option>
+          {emotionOptions.map((emotion) => (
+            <option key={emotion}>{emotion}</option>
+          ))}
+        </select>
+
+        <select
+          value={filters.month}
+          onChange={(event) =>
+            setFilters((current) => ({
+              ...current,
+              month: event.target.value,
+            }))
+          }
+          className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400"
+        >
+          <option>Todos</option>
+          {availableMonths.map((month) => (
+            <option key={month}>{month}</option>
+          ))}
+        </select>
+
+        <button
+          onClick={resetFilters}
+          className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-bold text-white/60 transition hover:bg-white/10 hover:text-white"
+        >
+          Limpiar filtros
+        </button>
+      </div>
+    </div>
+
+    {/* Desktop: tabla */}
+    <div className="overflow-x-auto rounded-2xl border border-white/10">
+      <table className="min-w-[720px] w-full text-left text-sm">
+        <thead className="bg-white/[0.04] text-white/40">
+          <tr>
+            <th className="px-4 py-4 font-medium">Fecha</th>
+            <th className="px-4 py-4 font-medium">Cuenta</th>
+            <th className="px-4 py-4 font-medium">Setup</th>
+            <th className="px-4 py-4 font-medium">Resultado</th>
+            <th className="px-4 py-4 font-medium">Imagen</th>
+            <th className="px-4 py-4 font-medium">Acción</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {filteredTrades.length === 0 ? (
+            <tr className="border-t border-white/10">
+              <td colSpan={6} className="px-4 py-10 text-center text-white/40">
+                No hay operaciones con esos filtros.
+              </td>
+            </tr>
+          ) : (
+            filteredTrades.map((trade) => {
+              const resultNumber = Number(trade.result);
+
+              return (
+                <tr key={trade.id} className="border-t border-white/10">
+                  <td className="px-4 py-4 text-white/60">{trade.date}</td>
+                  <td className="px-4 py-4 text-white">{trade.account}</td>
+                  <td className="px-4 py-4 text-white/60">{trade.setup}</td>
+                  <td
+                    className={`px-4 py-4 ${
+                      resultNumber >= 0
+                        ? "text-emerald-400"
+                        : "text-red-400"
+                    }`}
+                  >
+                    ${trade.result}
+                  </td>
+                  <td className="px-4 py-4">
+                    {trade.image ? (
+                      <ImageIcon size={16} className="text-emerald-400" />
+                    ) : (
+                      <span className="text-white/20">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedTrade(trade)}
+                        className="rounded-xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
+                        title="Ver detalle"
+                      >
+                        <Eye size={16} />
+                      </button>
+
+                      <button
+                        onClick={() => openEditTrade(trade)}
+                        className="rounded-xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
+                        title="Editar operación"
+                      >
+                        <Pencil size={16} />
+                      </button>
+
+                      <button
+                        onClick={() => deleteTrade(trade.id)}
+                        className="rounded-xl bg-red-400/10 p-2 text-red-400 transition hover:bg-red-400/20"
+                        title="Borrar operación"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 md:p-6">
+    <div className="mb-6 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
+          <CalendarDays size={20} className="text-emerald-400" />
+        </div>
+
+        <div>
+          <p className="text-sm text-white/40">Plan diario</p>
+          <h3 className="text-xl font-bold">Reglas del día</h3>
+        </div>
+      </div>
+
+      <button
+        onClick={() => setEditingRules(!editingRules)}
+        className="rounded-2xl bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
+        title="Editar reglas"
+      >
+        {editingRules ? <Save size={18} /> : <Pencil size={18} />}
+      </button>
+    </div>
+
+    <div className="space-y-4">
+      {rules.map((rule, index) => (
+        <div
+          key={index}
+          className="rounded-2xl border border-white/10 bg-black/40 p-3 md:p-4"
+        >
+          {editingRules ? (
+            <div className="space-y-3">
+              <input
+                value={rule.title}
+                onChange={(event) =>
+                  updateRule(index, "title", event.target.value)
+                }
+                className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-emerald-400"
+              />
+
+              <textarea
+                value={rule.description}
+                onChange={(event) =>
+                  updateRule(index, "description", event.target.value)
+                }
+                rows={2}
+                className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-white/70 outline-none focus:border-emerald-400"
+              />
+
+              <button
+                onClick={() => deleteRule(index)}
+                className="flex items-center gap-2 text-xs text-red-400 transition hover:text-red-300"
+              >
+                <X size={14} />
+                Borrar regla
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm font-semibold">{rule.title}</p>
+              <p className="mt-1 text-sm text-white/40">{rule.description}</p>
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+
+    {editingRules && (
+      <button
+        onClick={addRule}
+        className="mt-4 w-full rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-white/60 transition hover:bg-white/5 hover:text-white"
+      >
+        + Agregar regla
+      </button>
+    )}
+  </div>
+</div>
 
       <div
         style={{
@@ -2043,8 +2175,8 @@ export function TradingJournalClient() {
       </div>
 
       {isAccountsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="lifeos-modal fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/85 px-3 py-4 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="w-full max-w-6xl rounded-3xl border border-white/10 bg-[#080808] p-4 pb-8 shadow-2xl sm:max-h-[90vh] sm:overflow-y-auto sm:p-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <p className="text-sm text-white/40">Trading Journal</p>
@@ -2072,8 +2204,8 @@ export function TradingJournalClient() {
       )}
 
       {selectedTrade && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="lifeos-modal fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/85 px-3 py-4 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="w-full max-w-5xl rounded-3xl border border-white/10 bg-[#080808] p-4 pb-8 shadow-2xl sm:max-h-[90vh] sm:overflow-y-auto sm:p-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm text-white/40">Detalle del trade</p>
@@ -2186,10 +2318,10 @@ export function TradingJournalClient() {
       )}
 
       {editingTrade && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="lifeos-modal fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/85 px-3 py-4 backdrop-blur-sm sm:items-center sm:p-4">
           <form
             onSubmit={saveEditedTrade}
-            className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl"
+            className="w-full max-w-4xl rounded-3xl border border-white/10 bg-[#080808] p-5 pb-8 shadow-2xl sm:max-h-[90vh] sm:overflow-y-auto sm:p-6"
           >
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
@@ -2209,7 +2341,7 @@ export function TradingJournalClient() {
               </button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
               <label className="space-y-2">
                 <span className="text-xs text-white/40">Fecha</span>
                 <input
