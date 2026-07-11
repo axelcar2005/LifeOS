@@ -225,23 +225,38 @@ export function TradingJournalClient() {
   const monthlyReportExportRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const savedTrades = localStorage.getItem(storageKeys.trades);
-    const savedRules = localStorage.getItem(storageKeys.rules);
-    const savedRrTarget = localStorage.getItem(storageKeys.rrTarget);
-    const savedAccounts = localStorage.getItem(storageKeys.accounts);
+  async function loadTradingData() {
+    try {
+      const savedRules = localStorage.getItem(storageKeys.rules);
+      const savedRrTarget = localStorage.getItem(storageKeys.rrTarget);
+      const savedAccounts = localStorage.getItem(storageKeys.accounts);
 
-    if (savedTrades) setTrades(JSON.parse(savedTrades));
-    if (savedRules) setRules(JSON.parse(savedRules));
-    if (savedRrTarget) setRrTarget(savedRrTarget);
-    if (savedAccounts) setAccounts(JSON.parse(savedAccounts));
+      if (savedRules) setRules(JSON.parse(savedRules));
+      if (savedRrTarget) setRrTarget(savedRrTarget);
+      if (savedAccounts) setAccounts(JSON.parse(savedAccounts));
 
-    setLoaded(true);
-  }, []);
+      const response = await fetch("/api/trades");
+      const data = await response.json();
 
-  useEffect(() => {
-    if (!loaded) return;
-    localStorage.setItem(storageKeys.trades, JSON.stringify(trades));
-  }, [trades, loaded]);
+      if (!response.ok) {
+        console.error("Error cargando trades:", data.error);
+        setTrades([]);
+        return;
+      }
+
+      setTrades(data.trades ?? []);
+    } catch (error) {
+      console.error("Error cargando trading data:", error);
+      setTrades([]);
+    } finally {
+      setLoaded(true);
+    }
+  }
+
+  loadTradingData();
+}, []);
+
+
 
   useEffect(() => {
     if (!loaded) return;
@@ -268,11 +283,44 @@ export function TradingJournalClient() {
     );
   }
 
-  function addTrade(trade: Trade) {
-    setTrades((currentTrades) => [trade, ...currentTrades]);
-  }
+  async function addTrade(trade: Trade) {
+  try {
+    const response = await fetch("/api/trades", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(trade),
+    });
 
-  function deleteTrade(tradeId: string) {
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Error guardando trade:", data.error);
+      alert(`No se pudo guardar el trade en la nube: ${data.error}`);
+      return;
+    }
+
+    setTrades((currentTrades) => [data.trade, ...currentTrades]);
+  } catch (error) {
+    console.error("Error guardando trade:", error);
+    alert("Error guardando el trade.");
+  }
+}
+  async function deleteTrade(tradeId: string) {
+  try {
+    const response = await fetch(`/api/trades?id=${tradeId}`, {
+      method: "DELETE",
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Error eliminando trade:", data.error);
+      alert(`No se pudo eliminar el trade: ${data.error}`);
+      return;
+    }
+
     setTrades((currentTrades) =>
       currentTrades.filter((trade) => trade.id !== tradeId)
     );
@@ -284,7 +332,11 @@ export function TradingJournalClient() {
     setEditingTrade((currentTrade) =>
       currentTrade?.id === tradeId ? null : currentTrade
     );
+  } catch (error) {
+    console.error("Error eliminando trade:", error);
+    alert("Error eliminando el trade.");
   }
+}
 
   function openEditTrade(trade: Trade) {
     setEditingTrade({ ...trade });
@@ -315,23 +367,44 @@ export function TradingJournalClient() {
     reader.readAsDataURL(file);
   }
 
-  function saveEditedTrade(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveEditedTrade(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    if (!editingTrade) return;
+  if (!editingTrade) return;
+
+  try {
+    const response = await fetch("/api/trades", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(editingTrade),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Error editando trade:", data.error);
+      alert(`No se pudo editar el trade: ${data.error}`);
+      return;
+    }
 
     setTrades((currentTrades) =>
       currentTrades.map((trade) =>
-        trade.id === editingTrade.id ? editingTrade : trade
+        trade.id === data.trade.id ? data.trade : trade
       )
     );
 
     setSelectedTrade((currentTrade) =>
-      currentTrade?.id === editingTrade.id ? editingTrade : currentTrade
+      currentTrade?.id === data.trade.id ? data.trade : currentTrade
     );
 
     setEditingTrade(null);
+  } catch (error) {
+    console.error("Error editando trade:", error);
+    alert("Error editando el trade.");
   }
+}
 
   function updateRule(
     index: number,
