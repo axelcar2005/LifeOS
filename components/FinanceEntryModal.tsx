@@ -73,7 +73,7 @@ export function FinanceEntryModal({ onAddMovement }: FinanceEntryModalProps) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/80 p-3 pb-28 pt-4 backdrop-blur-sm sm:items-center sm:p-4">
           <form
             onSubmit={handleSubmit}
             className="w-full max-w-3xl rounded-3xl border border-white/10 bg-[#080808] p-6 shadow-2xl"

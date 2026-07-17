@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent 
 import html2canvas from "html2canvas";
 import {
   BarChart3,
+  Brain,
   CalendarDays,
   CircleDollarSign,
   Download,
@@ -12,6 +13,7 @@ import {
   Pencil,
   Save,
   Search,
+  ShieldCheck,
   Target,
   Trash2,
   TrendingUp,
@@ -2051,198 +2053,595 @@ export function TradingJournalClient() {
               ref={socialPostExportRef}
               style={{
                 width: "1080px",
-                height: "1350px",
+                height: "1080px",
                 marginTop: "32px",
-                background:
-                  "linear-gradient(180deg, #080808 0%, #020617 55%, #000000 100%)",
-                border: "1px solid #27272a",
-                borderRadius: "36px",
-                padding: "56px",
+                boxSizing: "border-box",
+                position: "relative",
                 overflow: "hidden",
+                border: "1px solid rgba(255,255,255,0.16)",
+                borderRadius: "38px",
+                padding: "50px 56px 48px",
+                color: "#ffffff",
+                fontFamily: "Arial, Helvetica, sans-serif",
+                background:
+                  "radial-gradient(circle at 94% 3%, rgba(255,255,255,0.055), transparent 22%), linear-gradient(rgba(255,255,255,0.016) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.016) 1px, transparent 1px), linear-gradient(180deg, #050505 0%, #020202 52%, #000000 100%)",
+                backgroundSize: "auto, 70px 70px, 70px 70px, auto",
               }}
             >
-              <p
+              <div
                 style={{
-                  color: "#34d399",
-                  fontSize: "22px",
-                  fontWeight: 700,
-                  margin: 0,
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "5px",
+                  background:
+                    "linear-gradient(90deg, #ffffff 0%, rgba(255,255,255,0.48) 40%, rgba(255,255,255,0.04) 78%, transparent 100%)",
                 }}
-              >
-                Life OS Trading Journal
-              </p>
-
-              <h1
-                style={{
-                  fontSize: "68px",
-                  lineHeight: 1,
-                  margin: "20px 0 12px",
-                }}
-              >
-                Trade Recap
-              </h1>
-
-              <p style={{ color: "#9ca3af", fontSize: "28px", margin: 0 }}>
-                {selectedTrade.date} · {selectedTrade.asset} ·{" "}
-                {selectedTrade.direction}
-              </p>
+              />
 
               <div
                 style={{
-                  marginTop: "42px",
+                  position: "relative",
+                  zIndex: 1,
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: "18px",
+                  height: "100%",
+                  minHeight: 0,
+                  gridTemplateRows:
+                    "26px 100px 128px 96px minmax(0, 1fr) 54px",
+                  rowGap: "15px",
                 }}
               >
                 <div
                   style={{
-                    background: "#000000",
-                    border: "1px solid #27272a",
-                    borderRadius: "24px",
-                    padding: "24px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "13px",
                   }}
                 >
-                  <p style={{ color: "#9ca3af", fontSize: "18px", margin: 0 }}>
-                    Resultado
-                  </p>
-                  <p
+                  <span
                     style={{
-                      color:
-                        Number(selectedTrade.result) >= 0
-                          ? "#34d399"
-                          : "#f87171",
-                      fontSize: "44px",
-                      fontWeight: 900,
-                      margin: "10px 0 0",
-                    }}
-                  >
-                    ${selectedTrade.result}
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    background: "#000000",
-                    border: "1px solid #27272a",
-                    borderRadius: "24px",
-                    padding: "24px",
-                  }}
-                >
-                  <p style={{ color: "#9ca3af", fontSize: "18px", margin: 0 }}>
-                    Riesgo
-                  </p>
-                  <p
-                    style={{
-                      color: "#ffffff",
-                      fontSize: "44px",
-                      fontWeight: 900,
-                      margin: "10px 0 0",
-                    }}
-                  >
-                    ${selectedTrade.risk}
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    background: "#000000",
-                    border: "1px solid #27272a",
-                    borderRadius: "24px",
-                    padding: "24px",
-                  }}
-                >
-                  <p style={{ color: "#9ca3af", fontSize: "18px", margin: 0 }}>
-                    Emoción
-                  </p>
-                  <p
-                    style={{
-                      color: "#ffffff",
-                      fontSize: "34px",
-                      fontWeight: 900,
-                      margin: "16px 0 0",
-                    }}
-                  >
-                    {selectedTrade.emotion || "—"}
-                  </p>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  marginTop: "32px",
-                  background: "#000000",
-                  border: "1px solid #27272a",
-                  borderRadius: "28px",
-                  padding: "24px",
-                }}
-              >
-                <p style={{ color: "#9ca3af", fontSize: "18px", margin: 0 }}>
-                  Setup
-                </p>
-                <p
-                  style={{
-                    color: "#facc15",
-                    fontSize: "40px",
-                    fontWeight: 900,
-                    margin: "10px 0 0",
-                  }}
-                >
-                  {selectedTrade.setup || "Sin setup"}
-                </p>
-              </div>
-
-              <div
-                style={{
-                  marginTop: "32px",
-                  background: "#000000",
-                  border: "1px solid #27272a",
-                  borderRadius: "28px",
-                  padding: "24px",
-                  height: "560px",
-                }}
-              >
-                {selectedTrade.image ? (
-                  <img
-                    src={selectedTrade.image}
-                    alt="Imagen del trade"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      borderRadius: "20px",
+                      width: "38px",
+                      height: "2px",
+                      borderRadius: "999px",
+                      background: "#ffffff",
                     }}
                   />
-                ) : (
+
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "#f5f5f5",
+                      fontSize: "15px",
+                      lineHeight: 1.2,
+                      fontWeight: 800,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Life OS Trading Journal
+                  </p>
+                </div>
+
+                <div>
+                  <h1
+                    style={{
+                      margin: 0,
+                      color: "#ffffff",
+                      fontSize: "62px",
+                      fontWeight: 900,
+                      lineHeight: 1,
+                      letterSpacing: "-0.05em",
+                    }}
+                  >
+                    Trade Recap
+                  </h1>
+
+                  <p
+                    style={{
+                      margin: "10px 0 0",
+                      color: "#9ca3af",
+                      fontSize: "21px",
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {selectedTrade.date} · {selectedTrade.asset} ·{" "}
+                    {selectedTrade.direction}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                    gap: "14px",
+                  }}
+                >
                   <div
                     style={{
-                      width: "100%",
-                      height: "100%",
+                      minWidth: 0,
+                      position: "relative",
+                      overflow: "hidden",
+                      border: "1px solid rgba(255,255,255,0.16)",
+                      borderRadius: "22px",
+                      padding: "18px 18px 16px",
+                      background:
+                        "linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015))",
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: "18px",
+                        width: "44px",
+                        height: "2px",
+                        background:
+                          Number(selectedTrade.result) >= 0
+                            ? "#34d399"
+                            : "#f87171",
+                      }}
+                    />
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          margin: 0,
+                          color: "#a3a3a3",
+                          fontSize: "14px",
+                        }}
+                      >
+                        Resultado
+                      </p>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          width: "36px",
+                          height: "36px",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          border: "1px solid rgba(255,255,255,0.18)",
+                          borderRadius: "999px",
+                          color:
+                            Number(selectedTrade.result) >= 0
+                              ? "#34d399"
+                              : "#f87171",
+                          background:
+                            Number(selectedTrade.result) >= 0
+                              ? "rgba(52,211,153,0.06)"
+                              : "rgba(248,113,113,0.06)",
+                        }}
+                      >
+                        <TrendingUp
+                          size={19}
+                          strokeWidth={1.7}
+                          style={{
+                            transform:
+                              Number(selectedTrade.result) >= 0
+                                ? "none"
+                                : "rotate(180deg)",
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <p
+                      style={{
+                        margin: "17px 0 0",
+                        color:
+                          Number(selectedTrade.result) >= 0
+                            ? "#34d399"
+                            : "#f87171",
+                        fontSize: "34px",
+                        fontWeight: 900,
+                        lineHeight: 1.08,
+                        letterSpacing: "-0.035em",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {Number(selectedTrade.result) < 0 ? "-$" : "$"}
+                      {Math.abs(Number(selectedTrade.result)).toLocaleString(
+                        "en-US",
+                        { maximumFractionDigits: 2 }
+                      )}
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      minWidth: 0,
+                      border: "1px solid rgba(255,255,255,0.16)",
+                      borderRadius: "22px",
+                      padding: "18px 18px 16px",
+                      background:
+                        "linear-gradient(145deg, rgba(255,255,255,0.065), rgba(255,255,255,0.012))",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          margin: 0,
+                          color: "#a3a3a3",
+                          fontSize: "14px",
+                        }}
+                      >
+                        Riesgo
+                      </p>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          width: "36px",
+                          height: "36px",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          border: "1px solid rgba(255,255,255,0.18)",
+                          borderRadius: "999px",
+                          color: "#ffffff",
+                          background: "rgba(255,255,255,0.03)",
+                        }}
+                      >
+                        <ShieldCheck size={19} strokeWidth={1.7} />
+                      </div>
+                    </div>
+
+                    <p
+                      style={{
+                        margin: "17px 0 0",
+                        color: "#ffffff",
+                        fontSize: "34px",
+                        fontWeight: 900,
+                        lineHeight: 1.08,
+                        letterSpacing: "-0.035em",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      $
+                      {Math.abs(Number(selectedTrade.risk)).toLocaleString(
+                        "en-US",
+                        { maximumFractionDigits: 2 }
+                      )}
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      minWidth: 0,
+                      border: "1px solid rgba(255,255,255,0.16)",
+                      borderRadius: "22px",
+                      padding: "18px 18px 16px",
+                      background:
+                        "linear-gradient(145deg, rgba(255,255,255,0.065), rgba(255,255,255,0.012))",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          margin: 0,
+                          color: "#a3a3a3",
+                          fontSize: "14px",
+                        }}
+                      >
+                        Emoción
+                      </p>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          width: "36px",
+                          height: "36px",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          border: "1px solid rgba(255,255,255,0.18)",
+                          borderRadius: "999px",
+                          color: "#ffffff",
+                          background: "rgba(255,255,255,0.03)",
+                        }}
+                      >
+                        <Brain size={19} strokeWidth={1.7} />
+                      </div>
+                    </div>
+
+                    <p
+                      style={{
+                        margin: "17px 0 0",
+                        maxWidth: "100%",
+                        color: "#ffffff",
+                        fontSize:
+                          (selectedTrade.emotion || "").length > 14
+                            ? "20px"
+                            : (selectedTrade.emotion || "").length > 10
+                            ? "23px"
+                            : "27px",
+                        fontWeight: 900,
+                        lineHeight: 1.12,
+                        letterSpacing: "-0.02em",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {selectedTrade.emotion || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    minWidth: 0,
+                    position: "relative",
+                    overflow: "hidden",
+                    border: "1px solid rgba(255,255,255,0.16)",
+                    borderRadius: "22px",
+                    padding: "16px 20px",
+                    background:
+                      "linear-gradient(105deg, rgba(255,255,255,0.075), rgba(255,255,255,0.012) 50%)",
+                  }}
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      bottom: 0,
+                      left: 0,
+                      width: "5px",
+                      background: "#ffffff",
+                    }}
+                  />
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "16px",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          color: "#a3a3a3",
+                          fontSize: "14px",
+                        }}
+                      >
+                        Setup
+                      </p>
+
+                      <p
+                        style={{
+                          margin: "9px 0 0",
+                          color: "#ffffff",
+                          fontSize:
+                            (selectedTrade.setup || "").length > 30
+                              ? "23px"
+                              : (selectedTrade.setup || "").length > 20
+                              ? "27px"
+                              : "31px",
+                          fontWeight: 900,
+                          lineHeight: 1.08,
+                          letterSpacing: "-0.02em",
+                          overflowWrap: "anywhere",
+                        }}
+                      >
+                        {selectedTrade.setup || "Sin setup"}
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        width: "42px",
+                        height: "42px",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        border: "1px solid rgba(255,255,255,0.2)",
+                        borderRadius: "999px",
+                        color: "#ffffff",
+                        background: "rgba(255,255,255,0.03)",
+                      }}
+                    >
+                      <Target size={22} strokeWidth={1.7} />
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    minHeight: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
+                    border: "1px solid rgba(255,255,255,0.17)",
+                    borderRadius: "25px",
+                    padding: "12px",
+                    background:
+                      "linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01) 45%, #020202 100%)",
+                    boxShadow: "0 24px 70px rgba(0,0,0,0.42)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      height: "30px",
+                      flexShrink: 0,
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "0 5px 8px",
+                      color: "#737373",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "7px",
+                          height: "7px",
+                          borderRadius: "999px",
+                          background: "#ffffff",
+                        }}
+                      />
+                      <span
+                        style={{
+                          width: "7px",
+                          height: "7px",
+                          borderRadius: "999px",
+                          background: "#525252",
+                        }}
+                      />
+                      <span
+                        style={{
+                          width: "7px",
+                          height: "7px",
+                          borderRadius: "999px",
+                          background: "#262626",
+                        }}
+                      />
+                    </div>
+
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#8a8a8a",
+                        fontSize: "9px",
+                        fontWeight: 800,
+                        letterSpacing: "0.14em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Execution chart
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      position: "relative",
+                      minHeight: 0,
+                      flex: 1,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#71717a",
-                      fontSize: "24px",
+                      overflow: "hidden",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: "16px",
+                      background: "#020202",
                     }}
                   >
-                    Sin imagen del trade
+                    {selectedTrade.image ? (
+                      <img
+                        src={selectedTrade.image}
+                        alt="Imagen del trade"
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                          objectPosition: "center",
+                          borderRadius: "14px",
+                          background: "#020202",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#737373",
+                          fontSize: "22px",
+                        }}
+                      >
+                        Sin imagen del trade
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
 
-              <p
-                style={{
-                  margin: "32px 0 0",
-                  color: "#71717a",
-                  fontSize: "22px",
-                  textAlign: "center",
-                }}
-              >
-                Plan. Riesgo. Disciplina.
-              </p>
+                <div
+                  style={{
+                    display: "flex",
+                    minHeight: "54px",
+                    alignItems: "flex-end",
+                    justifyContent: "space-between",
+                    gap: "24px",
+                    borderTop: "1px solid rgba(255,255,255,0.14)",
+                    paddingTop: "13px",
+                  }}
+                >
+                  <div>
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#737373",
+                        fontSize: "10px",
+                        fontWeight: 800,
+                        letterSpacing: "0.18em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Trading mindset
+                    </p>
+
+                    <p
+                      style={{
+                        margin: "6px 0 0",
+                        color: "#ffffff",
+                        fontSize: "21px",
+                        fontWeight: 800,
+                        lineHeight: 1.1,
+                        letterSpacing: "-0.02em",
+                      }}
+                    >
+                      Plan. Riesgo. Disciplina.
+                    </p>
+                  </div>
+
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "#a3a3a3",
+                      fontSize: "13px",
+                      lineHeight: 1.2,
+                      textAlign: "right",
+                    }}
+                  >
+                    Life OS · Journal Export
+                  </p>
+                </div>
+              </div>
             </div>
+
           </>
         )}
       </div>

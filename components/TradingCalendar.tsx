@@ -137,8 +137,6 @@ export function TradingCalendar({ trades, onSelectTrade }: TradingCalendarProps)
     return {
       dayTrades,
       dailyPnL,
-      directionLabel,
-      tradeCountLabel,
       calendarDayLabel,
       latestTrade,
     };
@@ -146,7 +144,6 @@ export function TradingCalendar({ trades, onSelectTrade }: TradingCalendarProps)
 
   const mobileTradingDays = calendarDays.filter((day) => {
     const dayTrades = getDayTrades(day.date);
-
     return day.isCurrentMonth && dayTrades.length > 0;
   });
 
@@ -169,8 +166,8 @@ export function TradingCalendar({ trades, onSelectTrade }: TradingCalendarProps)
   }
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 md:p-6">
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <section className="min-w-0 rounded-3xl border border-white/10 bg-white/[0.035] p-4 md:p-6">
+      <div className="mb-5 flex flex-col gap-4 md:mb-6 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-sm text-white/40">Calendario de rendimiento</p>
           <h3 className="mt-1 text-2xl font-bold capitalize">
@@ -214,7 +211,6 @@ export function TradingCalendar({ trades, onSelectTrade }: TradingCalendarProps)
         </div>
       </div>
 
-      {/* Desktop */}
       <div className="hidden md:block">
         <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold uppercase text-white/35">
           {weekDays.map((day) => (
@@ -226,12 +222,8 @@ export function TradingCalendar({ trades, onSelectTrade }: TradingCalendarProps)
 
         <div className="mt-2 grid grid-cols-7 gap-2">
           {calendarDays.map((day) => {
-            const {
-              dayTrades,
-              dailyPnL,
-              calendarDayLabel,
-              latestTrade,
-            } = getDayData(day.date);
+            const { dayTrades, dailyPnL, calendarDayLabel, latestTrade } =
+              getDayData(day.date);
 
             const isToday = todayKey === day.date;
             const isPositive = dailyPnL > 0;
@@ -296,65 +288,65 @@ export function TradingCalendar({ trades, onSelectTrade }: TradingCalendarProps)
         </div>
       </div>
 
-      {/* Mobile */}
-      <div className="space-y-3 md:hidden">
-        <p className="text-sm text-white/40">Días operados del mes</p>
+      <div className="md:hidden">
+        <p className="mb-3 text-sm text-white/40">Días operados</p>
 
         {mobileTradingDays.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-5 text-sm text-white/40">
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/40">
             No tienes operaciones registradas en {monthKey}.
           </div>
         ) : (
-          mobileTradingDays.map((day) => {
-            const {
-              dayTrades,
-              dailyPnL,
-              calendarDayLabel,
-              latestTrade,
-            } = getDayData(day.date);
+          <div className="grid grid-cols-1 gap-3">
+            {mobileTradingDays.map((day) => {
+              const { dailyPnL, calendarDayLabel, latestTrade } = getDayData(
+                day.date
+              );
 
-            const isPositive = dailyPnL > 0;
-            const isNegative = dailyPnL < 0;
+              const isPositive = dailyPnL > 0;
+              const isNegative = dailyPnL < 0;
 
-            return (
-              <button
-                key={day.date}
-                onClick={() => {
-                  if (latestTrade) {
-                    onSelectTrade(latestTrade);
-                  }
-                }}
-                className={`w-full rounded-2xl border p-4 text-left transition ${
-                  isPositive
-                    ? "border-emerald-400/30 bg-emerald-400/10"
-                    : isNegative
-                    ? "border-red-400/30 bg-red-400/10"
-                    : "border-white/10 bg-black/30"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-white">{day.date}</p>
-                    <p className="mt-1 text-xs text-white/40">
-                      {calendarDayLabel}
+              return (
+                <button
+                  key={day.date}
+                  onClick={() => {
+                    if (latestTrade) {
+                      onSelectTrade(latestTrade);
+                    }
+                  }}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${
+                    isPositive
+                      ? "border-emerald-400/30 bg-emerald-400/10"
+                      : isNegative
+                      ? "border-red-400/30 bg-red-400/10"
+                      : "border-white/10 bg-black/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-white">
+                        {day.date}
+                      </p>
+                      <p className="mt-1 text-xs text-white/40">
+                        {calendarDayLabel}
+                      </p>
+                    </div>
+
+                    <p
+                      className={`shrink-0 text-xl font-bold ${
+                        dailyPnL >= 0 ? "text-emerald-400" : "text-red-400"
+                      }`}
+                    >
+                      ${dailyPnL}
                     </p>
                   </div>
 
-                  <p
-                    className={`text-xl font-bold ${
-                      dailyPnL >= 0 ? "text-emerald-400" : "text-red-400"
-                    }`}
-                  >
-                    ${dailyPnL}
+                  <p className="mt-3 text-xs text-white/30">
+                    Toca para ver el último trade de este día.
                   </p>
-                </div>
-
-                <p className="mt-3 text-xs text-white/30">
-                  Toca para ver el último trade de este día.
-                </p>
-              </button>
-            );
-          })
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
     </section>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import {
+  BarChart3,
   CalendarDays,
   Dumbbell,
   GraduationCap,
@@ -31,6 +32,7 @@ const configurableMenuItems = [
   { name: "Salud", href: "/salud", icon: Dumbbell },
   { name: "Estudios", href: "/estudios", icon: GraduationCap },
   { name: "Calendario", href: "/calendario", icon: CalendarDays },
+  { name: "Backtesting", href: "/backtesting", icon: BarChart3 },
 ];
 
 function createDefaultVisibleSections() {

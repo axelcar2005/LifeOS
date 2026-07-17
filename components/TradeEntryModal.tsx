@@ -129,10 +129,10 @@ export function TradeEntryModal({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/80 p-3 pb-28 pt-4 backdrop-blur-sm sm:items-center sm:p-4">
+        <div className="lifeos-modal fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/85 px-3 py-4 backdrop-blur-sm sm:items-center sm:p-4">
           <form
             onSubmit={handleSubmit}
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/10 bg-[#080808] p-5 pb-28 shadow-2xl sm:p-6"
+            className="w-full max-w-3xl rounded-3xl border border-white/10 bg-[#080808] p-5 pb-8 shadow-2xl sm:max-h-[90vh] sm:overflow-y-auto sm:p-6"
           >
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
@@ -152,7 +152,7 @@ export function TradeEntryModal({
               </button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm text-white/50">Fecha</label>
                 <input
