@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type RefObject,
+} from "react";
 import html2canvas from "html2canvas";
 import {
   BarChart3,
@@ -222,9 +230,14 @@ export function TradingJournalClient() {
   });
 
   const selectedTradeExportRef = useRef<HTMLDivElement | null>(null);
-  const socialPostExportRef = useRef<HTMLDivElement | null>(null);
-  const weeklyReportExportRef = useRef<HTMLDivElement | null>(null);
-  const monthlyReportExportRef = useRef<HTMLDivElement | null>(null);
+const socialPostSquareExportRef = useRef<HTMLDivElement | null>(null);
+const socialPostVerticalExportRef = useRef<HTMLDivElement | null>(null);
+const weeklyReportExportRef = useRef<HTMLDivElement | null>(null);
+const monthlyReportExportRef = useRef<HTMLDivElement | null>(null);
+
+const [socialExportFormat, setSocialExportFormat] = useState<
+  "square" | "vertical"
+>("vertical");
 
   useEffect(() => {
   async function loadTradingData() {
@@ -466,14 +479,19 @@ export function TradingJournalClient() {
     );
   }
 
-  function exportSocialPostAsImage() {
-    if (!selectedTrade) return;
+  function exportSocialPostAsImage(format = socialExportFormat) {
+  if (!selectedTrade) return;
 
-    exportElementAsImage(
-      socialPostExportRef.current,
-      `post-${selectedTrade.date}-${selectedTrade.account}-${selectedTrade.asset}`
-    );
-  }
+  const exportRef =
+    format === "square" ? socialPostSquareExportRef : socialPostVerticalExportRef;
+
+  exportElementAsImage(
+    exportRef.current,
+    `${format === "square" ? "post-1x1" : "post-vertical"}-${
+      selectedTrade.date
+    }-${selectedTrade.account}-${selectedTrade.asset}`
+  );
+}
 
   function exportWeeklyReportAsImage() {
     exportElementAsImage(
@@ -2049,599 +2067,17 @@ export function TradingJournalClient() {
               )}
             </div>
 
-            <div
-              ref={socialPostExportRef}
-              style={{
-                width: "1080px",
-                height: "1080px",
-                marginTop: "32px",
-                boxSizing: "border-box",
-                position: "relative",
-                overflow: "hidden",
-                border: "1px solid rgba(255,255,255,0.16)",
-                borderRadius: "38px",
-                padding: "50px 56px 48px",
-                color: "#ffffff",
-                fontFamily: "Arial, Helvetica, sans-serif",
-                background:
-                  "radial-gradient(circle at 94% 3%, rgba(255,255,255,0.055), transparent 22%), linear-gradient(rgba(255,255,255,0.016) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.016) 1px, transparent 1px), linear-gradient(180deg, #050505 0%, #020202 52%, #000000 100%)",
-                backgroundSize: "auto, 70px 70px, 70px 70px, auto",
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "5px",
-                  background:
-                    "linear-gradient(90deg, #ffffff 0%, rgba(255,255,255,0.48) 40%, rgba(255,255,255,0.04) 78%, transparent 100%)",
-                }}
-              />
+            <SocialTradeExportCard
+  selectedTrade={selectedTrade}
+  variant="square"
+  cardRef={socialPostSquareExportRef}
+/>
 
-              <div
-                style={{
-                  position: "relative",
-                  zIndex: 1,
-                  display: "grid",
-                  height: "100%",
-                  minHeight: 0,
-                  gridTemplateRows:
-                    "26px 100px 128px 96px minmax(0, 1fr) 54px",
-                  rowGap: "15px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "13px",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "38px",
-                      height: "2px",
-                      borderRadius: "999px",
-                      background: "#ffffff",
-                    }}
-                  />
-
-                  <p
-                    style={{
-                      margin: 0,
-                      color: "#f5f5f5",
-                      fontSize: "15px",
-                      lineHeight: 1.2,
-                      fontWeight: 800,
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Life OS Trading Journal
-                  </p>
-                </div>
-
-                <div>
-                  <h1
-                    style={{
-                      margin: 0,
-                      color: "#ffffff",
-                      fontSize: "62px",
-                      fontWeight: 900,
-                      lineHeight: 1,
-                      letterSpacing: "-0.05em",
-                    }}
-                  >
-                    Trade Recap
-                  </h1>
-
-                  <p
-                    style={{
-                      margin: "10px 0 0",
-                      color: "#9ca3af",
-                      fontSize: "21px",
-                      lineHeight: 1.25,
-                    }}
-                  >
-                    {selectedTrade.date} · {selectedTrade.asset} ·{" "}
-                    {selectedTrade.direction}
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                    gap: "14px",
-                  }}
-                >
-                  <div
-                    style={{
-                      minWidth: 0,
-                      position: "relative",
-                      overflow: "hidden",
-                      border: "1px solid rgba(255,255,255,0.16)",
-                      borderRadius: "22px",
-                      padding: "18px 18px 16px",
-                      background:
-                        "linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015))",
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: "18px",
-                        width: "44px",
-                        height: "2px",
-                        background:
-                          Number(selectedTrade.result) >= 0
-                            ? "#34d399"
-                            : "#f87171",
-                      }}
-                    />
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "10px",
-                      }}
-                    >
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "#a3a3a3",
-                          fontSize: "14px",
-                        }}
-                      >
-                        Resultado
-                      </p>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          width: "36px",
-                          height: "36px",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          border: "1px solid rgba(255,255,255,0.18)",
-                          borderRadius: "999px",
-                          color:
-                            Number(selectedTrade.result) >= 0
-                              ? "#34d399"
-                              : "#f87171",
-                          background:
-                            Number(selectedTrade.result) >= 0
-                              ? "rgba(52,211,153,0.06)"
-                              : "rgba(248,113,113,0.06)",
-                        }}
-                      >
-                        <TrendingUp
-                          size={19}
-                          strokeWidth={1.7}
-                          style={{
-                            transform:
-                              Number(selectedTrade.result) >= 0
-                                ? "none"
-                                : "rotate(180deg)",
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <p
-                      style={{
-                        margin: "17px 0 0",
-                        color:
-                          Number(selectedTrade.result) >= 0
-                            ? "#34d399"
-                            : "#f87171",
-                        fontSize: "34px",
-                        fontWeight: 900,
-                        lineHeight: 1.08,
-                        letterSpacing: "-0.035em",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {Number(selectedTrade.result) < 0 ? "-$" : "$"}
-                      {Math.abs(Number(selectedTrade.result)).toLocaleString(
-                        "en-US",
-                        { maximumFractionDigits: 2 }
-                      )}
-                    </p>
-                  </div>
-
-                  <div
-                    style={{
-                      minWidth: 0,
-                      border: "1px solid rgba(255,255,255,0.16)",
-                      borderRadius: "22px",
-                      padding: "18px 18px 16px",
-                      background:
-                        "linear-gradient(145deg, rgba(255,255,255,0.065), rgba(255,255,255,0.012))",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "10px",
-                      }}
-                    >
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "#a3a3a3",
-                          fontSize: "14px",
-                        }}
-                      >
-                        Riesgo
-                      </p>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          width: "36px",
-                          height: "36px",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          border: "1px solid rgba(255,255,255,0.18)",
-                          borderRadius: "999px",
-                          color: "#ffffff",
-                          background: "rgba(255,255,255,0.03)",
-                        }}
-                      >
-                        <ShieldCheck size={19} strokeWidth={1.7} />
-                      </div>
-                    </div>
-
-                    <p
-                      style={{
-                        margin: "17px 0 0",
-                        color: "#ffffff",
-                        fontSize: "34px",
-                        fontWeight: 900,
-                        lineHeight: 1.08,
-                        letterSpacing: "-0.035em",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      $
-                      {Math.abs(Number(selectedTrade.risk)).toLocaleString(
-                        "en-US",
-                        { maximumFractionDigits: 2 }
-                      )}
-                    </p>
-                  </div>
-
-                  <div
-                    style={{
-                      minWidth: 0,
-                      border: "1px solid rgba(255,255,255,0.16)",
-                      borderRadius: "22px",
-                      padding: "18px 18px 16px",
-                      background:
-                        "linear-gradient(145deg, rgba(255,255,255,0.065), rgba(255,255,255,0.012))",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "10px",
-                      }}
-                    >
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "#a3a3a3",
-                          fontSize: "14px",
-                        }}
-                      >
-                        Emoción
-                      </p>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          width: "36px",
-                          height: "36px",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          border: "1px solid rgba(255,255,255,0.18)",
-                          borderRadius: "999px",
-                          color: "#ffffff",
-                          background: "rgba(255,255,255,0.03)",
-                        }}
-                      >
-                        <Brain size={19} strokeWidth={1.7} />
-                      </div>
-                    </div>
-
-                    <p
-                      style={{
-                        margin: "17px 0 0",
-                        maxWidth: "100%",
-                        color: "#ffffff",
-                        fontSize:
-                          (selectedTrade.emotion || "").length > 14
-                            ? "20px"
-                            : (selectedTrade.emotion || "").length > 10
-                            ? "23px"
-                            : "27px",
-                        fontWeight: 900,
-                        lineHeight: 1.12,
-                        letterSpacing: "-0.02em",
-                        overflowWrap: "anywhere",
-                      }}
-                    >
-                      {selectedTrade.emotion || "—"}
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    minWidth: 0,
-                    position: "relative",
-                    overflow: "hidden",
-                    border: "1px solid rgba(255,255,255,0.16)",
-                    borderRadius: "22px",
-                    padding: "16px 20px",
-                    background:
-                      "linear-gradient(105deg, rgba(255,255,255,0.075), rgba(255,255,255,0.012) 50%)",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      bottom: 0,
-                      left: 0,
-                      width: "5px",
-                      background: "#ffffff",
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "16px",
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "#a3a3a3",
-                          fontSize: "14px",
-                        }}
-                      >
-                        Setup
-                      </p>
-
-                      <p
-                        style={{
-                          margin: "9px 0 0",
-                          color: "#ffffff",
-                          fontSize:
-                            (selectedTrade.setup || "").length > 30
-                              ? "23px"
-                              : (selectedTrade.setup || "").length > 20
-                              ? "27px"
-                              : "31px",
-                          fontWeight: 900,
-                          lineHeight: 1.08,
-                          letterSpacing: "-0.02em",
-                          overflowWrap: "anywhere",
-                        }}
-                      >
-                        {selectedTrade.setup || "Sin setup"}
-                      </p>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        width: "42px",
-                        height: "42px",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        border: "1px solid rgba(255,255,255,0.2)",
-                        borderRadius: "999px",
-                        color: "#ffffff",
-                        background: "rgba(255,255,255,0.03)",
-                      }}
-                    >
-                      <Target size={22} strokeWidth={1.7} />
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    minHeight: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    overflow: "hidden",
-                    border: "1px solid rgba(255,255,255,0.17)",
-                    borderRadius: "25px",
-                    padding: "12px",
-                    background:
-                      "linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01) 45%, #020202 100%)",
-                    boxShadow: "0 24px 70px rgba(0,0,0,0.42)",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      height: "30px",
-                      flexShrink: 0,
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "0 5px 8px",
-                      color: "#737373",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: "7px",
-                          height: "7px",
-                          borderRadius: "999px",
-                          background: "#ffffff",
-                        }}
-                      />
-                      <span
-                        style={{
-                          width: "7px",
-                          height: "7px",
-                          borderRadius: "999px",
-                          background: "#525252",
-                        }}
-                      />
-                      <span
-                        style={{
-                          width: "7px",
-                          height: "7px",
-                          borderRadius: "999px",
-                          background: "#262626",
-                        }}
-                      />
-                    </div>
-
-                    <p
-                      style={{
-                        margin: 0,
-                        color: "#8a8a8a",
-                        fontSize: "9px",
-                        fontWeight: 800,
-                        letterSpacing: "0.14em",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Execution chart
-                    </p>
-                  </div>
-
-                  <div
-                    style={{
-                      position: "relative",
-                      minHeight: 0,
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      overflow: "hidden",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: "16px",
-                      background: "#020202",
-                    }}
-                  >
-                    {selectedTrade.image ? (
-                      <img
-                        src={selectedTrade.image}
-                        alt="Imagen del trade"
-                        style={{
-                          display: "block",
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                          objectPosition: "center",
-                          borderRadius: "14px",
-                          background: "#020202",
-                        }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#737373",
-                          fontSize: "22px",
-                        }}
-                      >
-                        Sin imagen del trade
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    minHeight: "54px",
-                    alignItems: "flex-end",
-                    justifyContent: "space-between",
-                    gap: "24px",
-                    borderTop: "1px solid rgba(255,255,255,0.14)",
-                    paddingTop: "13px",
-                  }}
-                >
-                  <div>
-                    <p
-                      style={{
-                        margin: 0,
-                        color: "#737373",
-                        fontSize: "10px",
-                        fontWeight: 800,
-                        letterSpacing: "0.18em",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Trading mindset
-                    </p>
-
-                    <p
-                      style={{
-                        margin: "6px 0 0",
-                        color: "#ffffff",
-                        fontSize: "21px",
-                        fontWeight: 800,
-                        lineHeight: 1.1,
-                        letterSpacing: "-0.02em",
-                      }}
-                    >
-                      Plan. Riesgo. Disciplina.
-                    </p>
-                  </div>
-
-                  <p
-                    style={{
-                      margin: 0,
-                      color: "#a3a3a3",
-                      fontSize: "13px",
-                      lineHeight: 1.2,
-                      textAlign: "right",
-                    }}
-                  >
-                    Life OS · Journal Export
-                  </p>
-                </div>
-              </div>
-            </div>
-
+<SocialTradeExportCard
+  selectedTrade={selectedTrade}
+  variant="vertical"
+  cardRef={socialPostVerticalExportRef}
+/>
           </>
         )}
       </div>
@@ -2699,13 +2135,26 @@ export function TradingJournalClient() {
                   Exportar PNG
                 </button>
 
-                <button
-                  onClick={exportSocialPostAsImage}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/90"
-                >
-                  <Download size={16} />
-                  Post redes
-                </button>
+                <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-1">
+  <select
+    value={socialExportFormat}
+    onChange={(event) =>
+      setSocialExportFormat(event.target.value as "square" | "vertical")
+    }
+    className="rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-xs font-semibold text-white outline-none"
+  >
+    <option value="vertical">Vertical IG</option>
+    <option value="square">Post 1:1</option>
+  </select>
+
+  <button
+    onClick={() => exportSocialPostAsImage()}
+    className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-xs font-bold text-black transition hover:bg-white/90"
+  >
+    <Download size={15} />
+    Descargar
+  </button>
+</div>
 
                 <button
                   onClick={() => openEditTrade(selectedTrade)}
@@ -2971,5 +2420,410 @@ export function TradingJournalClient() {
         </div>
       )}
     </>
+  );
+}
+function formatExportMoney(value: number) {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  const amount = Math.abs(value).toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+  });
+
+  return `${sign}$${amount}`;
+}
+
+function formatExportR(result: number, risk: number) {
+  if (!risk) return "0.00R";
+
+  const rValue = result / risk;
+  const sign = rValue > 0 ? "+" : "";
+
+  return `${sign}${rValue.toFixed(2)}R`;
+}
+
+function SocialTradeExportCard({
+  selectedTrade,
+  variant,
+  cardRef,
+}: {
+  selectedTrade: Trade;
+  variant: "square" | "vertical";
+  cardRef: RefObject<HTMLDivElement | null>;
+}) {
+  const resultNumber = Number(selectedTrade.result || 0);
+  const riskNumber = Number(selectedTrade.risk || 0);
+  const isWin = resultNumber >= 0;
+  const accent = isWin ? "#18e8a4" : "#ff626f";
+  const muted = "#9ca3af";
+  const cardWidth = 1080;
+  const cardHeight = variant === "square" ? 1080 : 1600;
+  const isVertical = variant === "vertical";
+
+  return (
+    <div
+      ref={cardRef}
+      style={{
+        width: `${cardWidth}px`,
+        height: `${cardHeight}px`,
+        marginTop: "32px",
+        boxSizing: "border-box",
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: "42px",
+        padding: isVertical ? "62px 58px 54px" : "48px 52px 44px",
+        color: "#ffffff",
+        fontFamily:
+          "Inter, Arial, Helvetica, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+        background:
+          "radial-gradient(circle at 82% 12%, rgba(24,232,164,0.13), transparent 27%), radial-gradient(circle at 14% 8%, rgba(255,255,255,0.09), transparent 24%), linear-gradient(180deg, #080808 0%, #030303 54%, #000000 100%)",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: 0.17,
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)",
+          backgroundSize: "72px 72px",
+        }}
+      />
+
+      <div
+        style={{
+          position: "absolute",
+          left: "-120px",
+          top: "-120px",
+          width: "360px",
+          height: "360px",
+          borderRadius: "999px",
+          background: `${accent}22`,
+          filter: "blur(70px)",
+        }}
+      />
+
+      <div
+        style={{
+          position: "absolute",
+          right: "-160px",
+          bottom: "-160px",
+          width: "420px",
+          height: "420px",
+          borderRadius: "999px",
+          background: "rgba(255,255,255,0.07)",
+          filter: "blur(80px)",
+        }}
+      />
+
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          display: "grid",
+          height: "100%",
+          gridTemplateRows: isVertical
+            ? "auto auto auto 1fr auto"
+            : "auto auto auto 1fr auto",
+          rowGap: isVertical ? "34px" : "22px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "24px",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                margin: 0,
+                color: "#ffffff",
+                fontSize: isVertical ? "21px" : "17px",
+                fontWeight: 900,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+              }}
+            >
+              Life OS Journal
+            </p>
+
+            <p
+              style={{
+                margin: "9px 0 0",
+                color: "rgba(255,255,255,0.42)",
+                fontSize: isVertical ? "21px" : "16px",
+                fontWeight: 600,
+              }}
+            >
+              {selectedTrade.date} · {selectedTrade.account || "Cuenta"} ·{" "}
+              {selectedTrade.asset || "MNQ"}
+            </p>
+          </div>
+
+          <div
+            style={{
+              minWidth: isVertical ? "155px" : "135px",
+              border: "1px solid rgba(255,255,255,0.14)",
+              borderRadius: "999px",
+              padding: isVertical ? "13px 20px" : "11px 17px",
+              textAlign: "center",
+              color: accent,
+              background: `${accent}10`,
+              fontSize: isVertical ? "19px" : "15px",
+              fontWeight: 900,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+            }}
+          >
+            {selectedTrade.direction}
+          </div>
+        </div>
+
+        <div>
+          <p
+            style={{
+              margin: 0,
+              color: accent,
+              fontSize: isVertical ? "18px" : "14px",
+              fontWeight: 900,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+            }}
+          >
+            Trade Recap
+          </p>
+
+          <h1
+            style={{
+              margin: isVertical ? "16px 0 0" : "10px 0 0",
+              maxWidth: isVertical ? "860px" : "780px",
+              color: "#ffffff",
+              fontSize: isVertical ? "82px" : "64px",
+              fontWeight: 950,
+              lineHeight: 0.95,
+              letterSpacing: "-0.065em",
+            }}
+          >
+            {isWin ? "Plan ejecutado." : "Lección registrada."}
+          </h1>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.1fr 0.8fr 0.8fr",
+            gap: "14px",
+          }}
+        >
+          <ExportMetric
+            label="Resultado"
+            value={formatExportMoney(resultNumber)}
+            color={accent}
+            big
+          />
+
+          <ExportMetric
+            label="Riesgo"
+            value={`$${riskNumber.toLocaleString("en-US", {
+              maximumFractionDigits: 2,
+            })}`}
+            color="#ffffff"
+          />
+
+          <ExportMetric
+            label="R"
+            value={formatExportR(resultNumber, riskNumber)}
+            color={accent}
+          />
+        </div>
+
+        <div
+          style={{
+            minHeight: 0,
+            display: "grid",
+            gridTemplateRows: "auto 1fr",
+            gap: "16px",
+          }}
+        >
+          <div
+            style={{
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: "26px",
+              padding: isVertical ? "22px 24px" : "18px 22px",
+              background:
+                "linear-gradient(135deg, rgba(255,255,255,0.075), rgba(255,255,255,0.018))",
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+                color: muted,
+                fontSize: isVertical ? "19px" : "14px",
+                fontWeight: 700,
+              }}
+            >
+              Setup
+            </p>
+
+            <p
+              style={{
+                margin: "8px 0 0",
+                color: "#ffffff",
+                fontSize: isVertical ? "34px" : "25px",
+                fontWeight: 950,
+                lineHeight: 1.1,
+                letterSpacing: "-0.035em",
+              }}
+            >
+              {selectedTrade.setup || "Sin setup registrado"}
+            </p>
+          </div>
+
+          <div
+            style={{
+              minHeight: 0,
+              overflow: "hidden",
+              border: "1px solid rgba(255,255,255,0.14)",
+              borderRadius: "30px",
+              background:
+                "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025))",
+              padding: "14px",
+            }}
+          >
+            {selectedTrade.image ? (
+              <img
+                src={selectedTrade.image}
+                alt="Chart del trade"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  borderRadius: "22px",
+                  display: "block",
+                  background: "#0a0a0a",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "22px",
+                  background: "rgba(255,255,255,0.035)",
+                  color: "rgba(255,255,255,0.4)",
+                  fontSize: "22px",
+                  fontWeight: 700,
+                }}
+              >
+                Sin imagen del trade
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isVertical ? "1fr" : "1fr auto",
+            gap: "18px",
+            alignItems: "end",
+            borderTop: "1px solid rgba(255,255,255,0.12)",
+            paddingTop: isVertical ? "26px" : "18px",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                margin: 0,
+                color: "rgba(255,255,255,0.38)",
+                fontSize: isVertical ? "16px" : "12px",
+                fontWeight: 900,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+              }}
+            >
+              Mindset
+            </p>
+
+            <p
+              style={{
+                margin: "8px 0 0",
+                color: "#ffffff",
+                fontSize: isVertical ? "30px" : "22px",
+                fontWeight: 950,
+                letterSpacing: "-0.04em",
+              }}
+            >
+              Plan. Riesgo. Disciplina.
+            </p>
+          </div>
+
+          <p
+            style={{
+              margin: 0,
+              color: "rgba(255,255,255,0.36)",
+              fontSize: isVertical ? "18px" : "14px",
+              fontWeight: 700,
+              textAlign: isVertical ? "left" : "right",
+            }}
+          >
+            {selectedTrade.emotion || "Sin emoción"} · Life OS
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExportMetric({
+  label,
+  value,
+  color,
+  big = false,
+}: {
+  label: string;
+  value: string;
+  color: string;
+  big?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        minWidth: 0,
+        border: "1px solid rgba(255,255,255,0.12)",
+        borderRadius: "24px",
+        padding: "18px 20px",
+        background:
+          "linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.018))",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          color: "rgba(255,255,255,0.44)",
+          fontSize: "14px",
+          fontWeight: 700,
+        }}
+      >
+        {label}
+      </p>
+
+      <p
+        style={{
+          margin: "12px 0 0",
+          color,
+          fontSize: big ? "34px" : "28px",
+          fontWeight: 950,
+          lineHeight: 1,
+          letterSpacing: "-0.045em",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {value}
+      </p>
+    </div>
   );
 }
