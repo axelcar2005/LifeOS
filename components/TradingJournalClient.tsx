@@ -2431,6 +2431,12 @@ function formatExportMoney(value: number) {
   return `${sign}$${amount}`;
 }
 
+function getMetricValueSize(value: string, compact: boolean) {
+  if (value.length > 18) return compact ? 26 : 34;
+  if (value.length > 12) return compact ? 30 : 40;
+  return compact ? 36 : 50;
+}
+
 function SocialTradeExportCard({
   selectedTrade,
   variant,
@@ -2443,24 +2449,30 @@ function SocialTradeExportCard({
   const resultNumber = Number(selectedTrade.result || 0);
   const riskNumber = Number(selectedTrade.risk || 0);
   const isWin = resultNumber >= 0;
-
-  const accent = isWin ? "#6ee7a8" : "#fb7185";
-  const setupAccent = "#facc15";
-
   const isVertical = variant === "vertical";
+
+  const accent = isWin ? "#6EE7B7" : "#FB7185";
+  const setupAccent = "#FACC15";
 
   const cardWidth = 1080;
   const cardHeight = isVertical ? 1920 : 1080;
 
-  const paddingX = isVertical ? 70 : 58;
-  const paddingTop = isVertical ? 108 : 62;
-  const paddingBottom = isVertical ? 70 : 54;
+  const paddingX = isVertical ? 64 : 56;
+  const paddingTop = isVertical ? 72 : 52;
+  const paddingBottom = isVertical ? 58 : 46;
 
-  const titleSize = isVertical ? 88 : 70;
-  const chartHeight = isVertical ? 760 : 420;
+  const titleSize = isVertical ? 86 : 68;
+  const metaSize = isVertical ? 17 : 16;
+  const chartHeight = isVertical ? 860 : 420;
+  const setupSize = isVertical ? 34 : 28;
 
-  const resultLabel =
-    resultNumber > 0 ? "Ganancia" : resultNumber < 0 ? "Pérdida" : "Break even";
+  const metaText = [
+    selectedTrade.date,
+    selectedTrade.asset || "MNQ",
+    selectedTrade.direction || "Long",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div
@@ -2469,53 +2481,53 @@ function SocialTradeExportCard({
         width: `${cardWidth}px`,
         height: `${cardHeight}px`,
         marginTop: "32px",
-        boxSizing: "border-box",
         position: "relative",
         overflow: "hidden",
-        borderRadius: isVertical ? "0px" : "36px",
+        boxSizing: "border-box",
+        borderRadius: isVertical ? "0px" : "34px",
         padding: `${paddingTop}px ${paddingX}px ${paddingBottom}px`,
-        color: "#ffffff",
+        color: "#FFFFFF",
         fontFamily:
-          "Arial, Helvetica, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+          'Inter, "Helvetica Neue", Arial, system-ui, -apple-system, sans-serif',
         background:
-          "radial-gradient(circle at 86% 18%, rgba(20,184,166,0.30), transparent 22%), radial-gradient(circle at 15% 4%, rgba(15,23,42,0.95), transparent 26%), linear-gradient(180deg, #020617 0%, #020617 38%, #000000 100%)",
+          "linear-gradient(180deg, #020617 0%, #020617 34%, #000000 100%)",
       }}
     >
-      {/* Fondo blur / textura */}
+      {/* Fondo elegante sin círculos feos */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          opacity: 0.18,
+          background:
+            "radial-gradient(1200px 500px at 100% 18%, rgba(45,212,191,0.16), transparent 42%), radial-gradient(900px 420px at 0% 100%, rgba(16,185,129,0.10), transparent 40%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: 0.08,
           backgroundImage:
             "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
+          backgroundSize: isVertical ? "64px 64px" : "58px 58px",
+          pointerEvents: "none",
         }}
       />
 
       <div
         style={{
           position: "absolute",
-          right: "-180px",
-          top: isVertical ? "250px" : "150px",
-          width: "480px",
-          height: "480px",
-          borderRadius: "999px",
-          background: "rgba(45,212,191,0.24)",
-          filter: "blur(90px)",
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          left: "-190px",
-          bottom: "-160px",
-          width: "520px",
-          height: "520px",
-          borderRadius: "999px",
-          background: "rgba(45,212,191,0.14)",
-          filter: "blur(100px)",
+          top: 0,
+          right: 0,
+          width: isVertical ? "240px" : "190px",
+          height: "100%",
+          background:
+            "linear-gradient(90deg, transparent 0%, rgba(45,212,191,0.08) 100%)",
+          filter: "blur(40px)",
+          opacity: 0.9,
+          pointerEvents: "none",
         }}
       />
 
@@ -2524,65 +2536,90 @@ function SocialTradeExportCard({
           position: "relative",
           zIndex: 1,
           display: "flex",
-          height: "100%",
           flexDirection: "column",
+          height: "100%",
         }}
       >
         {/* Header */}
-        <div>
-          <p
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: "24px",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                margin: 0,
+                color: "#A7F3D0",
+                fontSize: isVertical ? "18px" : "16px",
+                fontWeight: 800,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+              }}
+            >
+              Life OS Trading Journal
+            </p>
+
+            <h1
+              style={{
+                margin: isVertical ? "32px 0 0" : "24px 0 0",
+                fontSize: `${titleSize}px`,
+                lineHeight: 0.94,
+                fontWeight: 900,
+                letterSpacing: "-0.055em",
+                color: "#FFFFFF",
+              }}
+            >
+              Trade Recap
+            </h1>
+
+            <p
+              style={{
+                margin: "14px 0 0",
+                color: "rgba(255,255,255,0.56)",
+                fontSize: `${metaSize}px`,
+                fontWeight: 500,
+                letterSpacing: "0.01em",
+              }}
+            >
+              {metaText}
+            </p>
+          </div>
+
+          <div
             style={{
-              margin: 0,
-              color: isWin ? "#86efac" : "#fda4af",
-              fontSize: isVertical ? "22px" : "17px",
-              fontWeight: 900,
+              flexShrink: 0,
+              borderRadius: "999px",
+              border: "1px solid rgba(255,255,255,0.14)",
+              background: "rgba(255,255,255,0.04)",
+              color: isWin ? "#86EFAC" : "#FDA4AF",
+              padding: isVertical ? "12px 22px" : "10px 18px",
+              fontSize: isVertical ? "15px" : "14px",
+              fontWeight: 800,
               letterSpacing: "0.16em",
               textTransform: "uppercase",
             }}
           >
-            Life OS Trading Journal
-          </p>
-
-          <h1
-            style={{
-              margin: isVertical ? "52px 0 0" : "34px 0 0",
-              color: "#ffffff",
-              fontSize: `${titleSize}px`,
-              fontWeight: 900,
-              lineHeight: 0.95,
-              letterSpacing: "-0.055em",
-            }}
-          >
-            Trade Recap
-          </h1>
-
-          <p
-            style={{
-              margin: "18px 0 0",
-              color: "rgba(255,255,255,0.52)",
-              fontSize: isVertical ? "32px" : "24px",
-              fontWeight: 500,
-            }}
-          >
-            {selectedTrade.date} · {selectedTrade.asset || "MNQ"} ·{" "}
-            {selectedTrade.direction}
-          </p>
+            {selectedTrade.direction || "Trade"}
+          </div>
         </div>
 
-        {/* Métricas */}
+        {/* Metrics */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: isVertical ? "26px" : "20px",
-            marginTop: isVertical ? "54px" : "36px",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: isVertical ? "18px" : "16px",
+            marginTop: isVertical ? "34px" : "26px",
           }}
         >
           <ExportMetric
             label="Resultado"
             value={formatExportMoney(resultNumber)}
             color={accent}
-            icon="↗"
             compact={!isVertical}
           />
 
@@ -2591,16 +2628,14 @@ function SocialTradeExportCard({
             value={`$${riskNumber.toLocaleString("en-US", {
               maximumFractionDigits: 2,
             })}`}
-            color="#ffffff"
-            icon="◇"
+            color="#FFFFFF"
             compact={!isVertical}
           />
 
           <ExportMetric
             label="Emoción"
-            value={selectedTrade.emotion || "Disciplina"}
-            color="#ffffff"
-            icon="◎"
+            value={selectedTrade.emotion || "Disciplinado"}
+            color="#FFFFFF"
             compact={!isVertical}
           />
         </div>
@@ -2608,86 +2643,90 @@ function SocialTradeExportCard({
         {/* Setup */}
         <div
           style={{
-            marginTop: isVertical ? "34px" : "24px",
-            border: "1px solid rgba(255,255,255,0.14)",
-            borderRadius: "30px",
-            padding: isVertical ? "34px 38px" : "25px 30px",
+            marginTop: isVertical ? "20px" : "18px",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: isVertical ? "28px" : "24px",
             background:
-              "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025))",
-            boxShadow: "0 22px 70px rgba(0,0,0,0.28)",
+              "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
+            padding: isVertical ? "24px 24px" : "20px 20px",
+            boxShadow: "0 16px 50px rgba(0,0,0,0.18)",
           }}
         >
-          <div
+          <p
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "24px",
+              margin: 0,
+              color: "rgba(255,255,255,0.56)",
+              fontSize: isVertical ? "18px" : "15px",
+              fontWeight: 500,
             }}
           >
-            <div>
-              <p
-                style={{
-                  margin: 0,
-                  color: "rgba(255,255,255,0.58)",
-                  fontSize: isVertical ? "26px" : "18px",
-                  fontWeight: 500,
-                }}
-              >
-                Setup
-              </p>
+            Setup
+          </p>
 
-              <p
-                style={{
-                  margin: "16px 0 0",
-                  color: setupAccent,
-                  fontSize: isVertical ? "56px" : "36px",
-                  fontWeight: 900,
-                  lineHeight: 1.02,
-                  letterSpacing: "-0.045em",
-                }}
-              >
-                {selectedTrade.setup || "Sin setup registrado"}
-              </p>
-            </div>
+          <p
+            style={{
+              margin: "12px 0 0",
+              color: setupAccent,
+              fontSize: `${setupSize}px`,
+              fontWeight: 900,
+              lineHeight: 1.06,
+              letterSpacing: "-0.03em",
+              wordBreak: "break-word",
+            }}
+          >
+            {selectedTrade.setup || "Sin setup registrado"}
+          </p>
+        </div>
 
-            <div
-              style={{
-                width: isVertical ? "66px" : "52px",
-                height: isVertical ? "66px" : "52px",
-                borderRadius: "999px",
-                border: "1px solid rgba(255,255,255,0.18)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "rgba(255,255,255,0.75)",
-                fontSize: isVertical ? "36px" : "28px",
-              }}
-            >
-              ⊕
-            </div>
-          </div>
+        {/* Chart heading */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: isVertical ? "22px" : "18px",
+            marginBottom: "12px",
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              color: "rgba(255,255,255,0.52)",
+              fontSize: isVertical ? "14px" : "13px",
+              fontWeight: 800,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+            }}
+          >
+            Execution Chart
+          </p>
+
+          <div
+            style={{
+              width: isVertical ? "60px" : "44px",
+              height: "1px",
+              background: "rgba(255,255,255,0.18)",
+            }}
+          />
         </div>
 
         {/* Chart */}
         <div
           style={{
-            marginTop: isVertical ? "42px" : "28px",
-            border: "1px solid rgba(255,255,255,0.14)",
-            borderRadius: isVertical ? "34px" : "28px",
-            padding: isVertical ? "20px" : "16px",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: isVertical ? "28px" : "24px",
             background:
-              "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.035))",
-            boxShadow: "0 32px 90px rgba(0,0,0,0.45)",
+              "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025))",
+            padding: isVertical ? "14px" : "12px",
+            boxShadow: "0 20px 70px rgba(0,0,0,0.28)",
           }}
         >
           <div
             style={{
               height: `${chartHeight}px`,
               overflow: "hidden",
-              borderRadius: isVertical ? "24px" : "20px",
-              background: "#080808",
-              position: "relative",
+              borderRadius: isVertical ? "20px" : "18px",
+              background: "#090909",
             }}
           >
             {selectedTrade.image ? (
@@ -2709,11 +2748,9 @@ function SocialTradeExportCard({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "rgba(255,255,255,0.42)",
-                  fontSize: isVertical ? "30px" : "22px",
+                  color: "rgba(255,255,255,0.38)",
+                  fontSize: isVertical ? "28px" : "20px",
                   fontWeight: 700,
-                  background:
-                    "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))",
                 }}
               >
                 Sin imagen del trade
@@ -2722,21 +2759,28 @@ function SocialTradeExportCard({
           </div>
         </div>
 
-        {/* Spacer */}
         <div style={{ flex: 1 }} />
 
         {/* Footer */}
         <div
           style={{
-            marginTop: isVertical ? "42px" : "28px",
-            textAlign: "center",
+            marginTop: isVertical ? "26px" : "20px",
           }}
         >
+          <div
+            style={{
+              width: "100%",
+              height: "1px",
+              background: "rgba(255,255,255,0.10)",
+            }}
+          />
+
           <p
             style={{
-              margin: 0,
-              color: "rgba(255,255,255,0.62)",
-              fontSize: isVertical ? "32px" : "24px",
+              margin: isVertical ? "22px 0 0" : "18px 0 0",
+              textAlign: "center",
+              color: "rgba(255,255,255,0.70)",
+              fontSize: isVertical ? "24px" : "20px",
               fontWeight: 500,
               letterSpacing: "-0.02em",
             }}
@@ -2746,13 +2790,14 @@ function SocialTradeExportCard({
 
           <p
             style={{
-              margin: isVertical ? "20px 0 0" : "14px 0 0",
-              color: "rgba(255,255,255,0.28)",
-              fontSize: isVertical ? "18px" : "14px",
-              fontWeight: 700,
+              margin: "10px 0 0",
+              textAlign: "center",
+              color: "rgba(255,255,255,0.32)",
+              fontSize: isVertical ? "15px" : "13px",
+              fontWeight: 600,
             }}
           >
-            {resultLabel} · {selectedTrade.account || "Cuenta"} · Life OS
+            {selectedTrade.account || "Cuenta"} · Life OS
           </p>
         </div>
       </div>
@@ -2764,44 +2809,40 @@ function ExportMetric({
   label,
   value,
   color,
-  icon,
   compact = false,
 }: {
   label: string;
   value: string;
   color: string;
-  icon: string;
   compact?: boolean;
 }) {
+  const valueSize = getMetricValueSize(value, compact);
+
   return (
     <div
       style={{
         minWidth: 0,
-        minHeight: compact ? "150px" : "190px",
-        border: "1px solid rgba(255,255,255,0.14)",
-        borderRadius: compact ? "24px" : "30px",
-        padding: compact ? "24px" : "30px",
+        border: "1px solid rgba(255,255,255,0.12)",
+        borderRadius: compact ? "22px" : "26px",
         background:
-          "linear-gradient(135deg, rgba(255,255,255,0.085), rgba(255,255,255,0.025))",
-        boxShadow: "0 20px 70px rgba(0,0,0,0.23)",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
+          "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025))",
+        padding: compact ? "18px 18px" : "24px 24px",
+        boxShadow: "0 14px 42px rgba(0,0,0,0.18)",
       }}
     >
       <div
         style={{
           display: "flex",
-          alignItems: "flex-start",
+          alignItems: "center",
           justifyContent: "space-between",
-          gap: "14px",
+          gap: "12px",
         }}
       >
         <p
           style={{
             margin: 0,
-            color: "rgba(255,255,255,0.58)",
-            fontSize: compact ? "18px" : "24px",
+            color: "rgba(255,255,255,0.56)",
+            fontSize: compact ? "15px" : "18px",
             fontWeight: 500,
           }}
         >
@@ -2810,33 +2851,26 @@ function ExportMetric({
 
         <div
           style={{
-            width: compact ? "44px" : "58px",
-            height: compact ? "44px" : "58px",
+            width: compact ? "10px" : "12px",
+            height: compact ? "10px" : "12px",
             borderRadius: "999px",
-            border: "1px solid rgba(255,255,255,0.16)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color,
-            fontSize: compact ? "23px" : "31px",
-            background: "rgba(255,255,255,0.035)",
+            background: color,
+            boxShadow: `0 0 18px ${color}`,
+            flexShrink: 0,
           }}
-        >
-          {icon}
-        </div>
+        />
       </div>
 
       <p
         style={{
-          margin: compact ? "22px 0 0" : "30px 0 0",
+          margin: compact ? "18px 0 0" : "22px 0 0",
           color,
-          fontSize: compact ? "38px" : "52px",
+          fontSize: `${valueSize}px`,
           fontWeight: 900,
-          lineHeight: 1,
-          letterSpacing: "-0.055em",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
+          lineHeight: 1.02,
+          letterSpacing: "-0.05em",
+          wordBreak: "break-word",
+          overflowWrap: "anywhere",
         }}
       >
         {value}
