@@ -2543,7 +2543,7 @@ function SocialTradeExportCard({
         overflow: "hidden",
         boxSizing: "border-box",
         borderRadius: "0px",
-        padding: "120px 64px 120px",
+        padding: "170px 64px 120px",
         color: "#FFFFFF",
         fontFamily:
           'Inter, "Helvetica Neue", Arial, system-ui, -apple-system, sans-serif',
@@ -3146,6 +3146,7 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
     const isWin = resultNumber >= 0;
     const accent = isWin ? "#6EE7B7" : "#FB7185";
     const setupAccent = "#FACC15";
+    const topOffset = 70;
 
     const gradient = context.createLinearGradient(0, 0, 0, 1920);
     gradient.addColorStop(0, "#020617");
@@ -3163,23 +3164,23 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
     context.fillStyle = "#A7F3D0";
     context.font = "800 18px Arial";
     context.letterSpacing = "3px";
-    context.fillText("LIFE OS TRADING JOURNAL", 64, 128);
+    context.fillText("LIFE OS TRADING JOURNAL", 64, 128 + topOffset);
 
     context.fillStyle = "#FFFFFF";
     context.font = "900 86px Arial";
     context.letterSpacing = "-4px";
-    context.fillText("Trade Recap", 64, 244);
+    context.fillText("Trade Recap", 64, 244 + topOffset);
 
     context.fillStyle = "rgba(255,255,255,0.56)";
     context.font = "500 17px Arial";
     context.letterSpacing = "0px";
     context.fillText(
-      `${trade.date} · ${trade.asset || "MNQ"} · ${trade.direction || "Long"}`,
-      64,
-      278
-    );
+  `${trade.date} · ${trade.asset || "MNQ"} · ${trade.direction || "Long"}`,
+  64,
+  278 + topOffset
+);
 
-    drawRoundRect(context, 884, 102, 132, 48, 24);
+    drawRoundRect(context, 64, 704 + topOffset, 952, 876, 34);
     context.fillStyle = "rgba(255,255,255,0.04)";
     context.fill();
     context.strokeStyle = "rgba(255,255,255,0.14)";
@@ -3188,63 +3189,61 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
     context.font = "800 15px Arial";
     context.textAlign = "center";
     context.fillText(
-      String(trade.direction || "Trade").toUpperCase(),
-      950,
-      132
-    );
+  String(trade.direction || "Trade").toUpperCase(),
+  950,
+  132 + topOffset
+);
     context.textAlign = "left";
 
     drawCanvasMetric(
-      context,
-      64,
-      330,
-      460,
-      132,
-      "Resultado",
-      formatExportMoney(resultNumber),
-      accent
-    );
+  context,
+  64,
+  330 + topOffset,
+  460,
+  132,
+  "Resultado",
+  formatExportMoney(resultNumber),
+  accent
+);
 
     drawCanvasMetric(
-      context,
-      542,
-      330,
-      474,
-      132,
-      "Riesgo",
-      `$${riskNumber.toLocaleString("en-US", {
-        maximumFractionDigits: 2,
-      })}`,
-      "#FFFFFF"
-    );
+  context,
+  542,
+  330 + topOffset,
+  474,
+  132,
+  "Riesgo",
+  `$${riskNumber.toLocaleString("en-US", { maximumFractionDigits: 2 })}`,
+  "#FFFFFF"
+);
 
-    drawRoundRect(context, 64, 484, 952, 122, 28);
+    drawRoundRect(context, 82, 722 + topOffset, 916, 840, 24);
     context.fillStyle = "rgba(255,255,255,0.035)";
     context.fill();
     context.strokeStyle = "rgba(255,255,255,0.12)";
     context.stroke();
     context.fillStyle = "rgba(255,255,255,0.56)";
     context.font = "500 18px Arial";
-    context.fillText("Setup", 88, 526);
+    context.fillText("Setup", 88, 526 + topOffset);
     context.fillStyle = setupAccent;
     context.font = "900 34px Arial";
     drawWrappedText(
-      context,
-      trade.setup || "Sin setup registrado",
-      88,
-      568,
-      850,
-      38,
-      1
-    );
+  context,
+  trade.setup || "Sin setup registrado",
+  88,
+  568 + topOffset,
+  850,
+  38,
+  1
+);
 
     context.fillStyle = "rgba(255,255,255,0.58)";
     context.font = "800 18px Arial";
     context.letterSpacing = "3px";
-    context.fillText("EXECUTION CHART", 64, 684);
+    context.fillText("EXECUTION CHART", 64, 684 + topOffset);
     context.letterSpacing = "0px";
     context.fillStyle = "rgba(255,255,255,0.18)";
-    context.fillRect(952, 672, 64, 1);
+    context.fillRect(952, 672 + topOffset, 64, 1);
 
     const mediaLayout = getContainedMediaRect(
       video.videoWidth || 1080,
@@ -3309,11 +3308,15 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
     context.fillStyle = "rgba(255,255,255,0.82)";
     context.font = "500 23px Arial";
     context.textAlign = "center";
-    context.fillText("Plan. Riesgo. Disciplina.", 540, footerY + 14);
+    context.fillText("Plan. Riesgo. Disciplina.", 540, 1762 + topOffset);
 
     context.fillStyle = "rgba(255,255,255,0.32)";
     context.font = "700 15px Arial";
-    context.fillText(`${trade.account || "Cuenta"} · Life OS`, 540, footerY + 46);
+    context.fillText(
+  `${trade.account || "Cuenta"} · Life OS`,
+  540,
+  1794 + topOffset
+);
     context.textAlign = "left";
   }
 
