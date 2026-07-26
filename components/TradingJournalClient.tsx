@@ -2478,6 +2478,9 @@ const paddingBottom = isVertical ? 120 : 88;
     <div
       ref={cardRef}
       style={{
+        
+        
+        
         width: `${cardWidth}px`,
         height: `${cardHeight}px`,
         marginTop: "32px",
@@ -2675,126 +2678,130 @@ const paddingBottom = isVertical ? 120 : 88;
 
         {/* Chart heading */}
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginTop: isVertical ? "22px" : "18px",
-            marginBottom: "12px",
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              color: "rgba(255,255,255,0.52)",
-              fontSize: isVertical ? "14px" : "13px",
-              fontWeight: 800,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-            }}
-          >
-            Execution Chart
-          </p>
+  style={{
+    marginTop: "26px",
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: "14px",
+    }}
+  >
+    <p
+      style={{
+        margin: 0,
+        fontSize: "18px",
+        fontWeight: 800,
+        letterSpacing: "0.18em",
+        color: "rgba(255,255,255,0.58)",
+      }}
+    >
+      EXECUTION CHART
+    </p>
 
-          <div
-            style={{
-              width: isVertical ? "60px" : "44px",
-              height: "1px",
-              background: "rgba(255,255,255,0.18)",
-            }}
-          />
-        </div>
+    <div
+      style={{
+        width: "64px",
+        height: "1px",
+        background: "rgba(255,255,255,0.18)",
+      }}
+    />
+  </div>
 
-        {/* Chart */}
+  <div
+    style={{
+      borderRadius: "34px",
+      border: "1px solid rgba(255,255,255,0.12)",
+      background:
+        "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
+      padding: "18px",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+    }}
+  >
+    <div
+      style={{
+        width: "100%",
+        minHeight: "840px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        borderRadius: "24px",
+        background: "#0b1220",
+      }}
+    >
+      {selectedTrade.image ? (
+        <img
+  src={selectedTrade.image}
+  alt="Chart del trade"
+  style={{
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    objectPosition: "center",
+    display: "block",
+    background: "#090909",
+  }}
+/>
+      ) : (
         <div
           style={{
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: isVertical ? "28px" : "24px",
+            width: "100%",
+            height: "840px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "24px",
+            color: "rgba(255,255,255,0.42)",
+            fontSize: "22px",
+            fontWeight: 600,
             background:
-              "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025))",
-            padding: isVertical ? "14px" : "12px",
-            boxShadow: "0 20px 70px rgba(0,0,0,0.28)",
+              "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
           }}
         >
-          <div
-            style={{
-              height: `${chartHeight}px`,
-              overflow: "hidden",
-              borderRadius: isVertical ? "20px" : "18px",
-              background: "#090909",
-            }}
-          >
-            {selectedTrade.image ? (
-              <img
-                src={selectedTrade.image}
-                alt="Chart del trade"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center",
-                  display: "block",
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  height: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "rgba(255,255,255,0.38)",
-                  fontSize: isVertical ? "28px" : "20px",
-                  fontWeight: 700,
-                }}
-              >
-                Sin imagen del trade
-              </div>
-            )}
-          </div>
+          Este trade no tiene imagen guardada.
         </div>
-
+      )}
+    </div>
+  </div>
+</div>
         <div style={{ flex: 1 }} />
 
         {/* Footer */}
         <div
   style={{
-    marginTop: isVertical ? "42px" : "30px",
+    marginTop: "26px",
+    paddingTop: "26px",
+    borderTop: "1px solid rgba(255,255,255,0.10)",
+    textAlign: "center",
   }}
 >
-          <div
-            style={{
-              width: "100%",
-              height: "1px",
-              background: "rgba(255,255,255,0.10)",
-            }}
-          />
+  <p
+    style={{
+      margin: 0,
+      fontSize: "23px",
+      fontWeight: 500,
+      letterSpacing: "-0.03em",
+      color: "rgba(255,255,255,0.82)",
+    }}
+  >
+    Plan. Riesgo. Disciplina.
+  </p>
 
-          <p
-            style={{
-              margin: isVertical ? "22px 0 0" : "18px 0 0",
-              textAlign: "center",
-              color: "rgba(255,255,255,0.70)",
-              fontSize: isVertical ? "24px" : "20px",
-              fontWeight: 500,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Plan. Riesgo. Disciplina.
-          </p>
-
-          <p
-            style={{
-              margin: "10px 0 0",
-              textAlign: "center",
-              color: "rgba(255,255,255,0.32)",
-              fontSize: isVertical ? "15px" : "13px",
-              fontWeight: 600,
-            }}
-          >
-            {selectedTrade.account || "Cuenta"} · Life OS
-          </p>
-        </div>
+  <p
+    style={{
+      margin: "10px 0 0",
+      fontSize: "15px",
+      fontWeight: 700,
+      color: "rgba(255,255,255,0.32)",
+    }}
+  >
+    {selectedTrade.account || "PA07"} · Life OS
+  </p>
+</div>
       </div>
     </div>
   );
