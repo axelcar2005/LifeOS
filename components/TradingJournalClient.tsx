@@ -2770,50 +2770,62 @@ function SocialTradeExportCard({
             <div
               style={{
                 width: "100%",
-                height: "840px",
                 display: "flex",
-                alignItems: "center",
                 justifyContent: "center",
-                overflow: "hidden",
-                borderRadius: "24px",
-                background: "#0b1220",
               }}
             >
               {selectedTrade.image ? (
-                isTradeVideo(selectedTrade.image) ? (
-                  <video
-                    src={selectedTrade.image}
-                    muted
-                    playsInline
-                    controls
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      objectPosition: "center",
-                      display: "block",
-                      background: "#090909",
-                    }}
-                  />
-                ) : (
-                  <img
-                    src={selectedTrade.image}
-                    alt="Chart del trade"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      objectPosition: "center",
-                      display: "block",
-                      background: "#090909",
-                    }}
-                  />
-                )
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    maxWidth: "100%",
+                    borderRadius: "24px",
+                    overflow: "hidden",
+                    background: "#0b1220",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+                  }}
+                >
+                  {isTradeVideo(selectedTrade.image) ? (
+                    <video
+                      src={selectedTrade.image}
+                      muted
+                      playsInline
+                      controls
+                      style={{
+                        display: "block",
+                        width: "auto",
+                        height: "auto",
+                        maxWidth: "100%",
+                        maxHeight: "840px",
+                        objectFit: "contain",
+                        objectPosition: "center",
+                        background: "#090909",
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={selectedTrade.image}
+                      alt="Chart del trade"
+                      style={{
+                        display: "block",
+                        width: "auto",
+                        height: "auto",
+                        maxWidth: "100%",
+                        maxHeight: "840px",
+                        objectFit: "contain",
+                        objectPosition: "center",
+                        background: "#090909",
+                      }}
+                    />
+                  )}
+                </div>
               ) : (
                 <div
                   style={{
                     width: "100%",
-                    height: "840px",
+                    minHeight: "520px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -2832,7 +2844,7 @@ function SocialTradeExportCard({
           </div>
         </div>
 
-        <div style={{ height: "34px" }} />
+        <div style={{ flex: 1 }} />
 
         <div
           style={{
@@ -3028,6 +3040,76 @@ async function waitForVideoMetadata(video: HTMLVideoElement) {
     video.onerror = () => reject(new Error("No se pudo cargar el video."));
   });
 }
+function getContainedMediaRect(
+  sourceWidth: number,
+  sourceHeight: number,
+  boxX: number,
+  boxY: number,
+  boxWidth: number,
+  maxBoxHeight: number
+) {
+  if (!sourceWidth || !sourceHeight) {
+    return {
+      frameX: boxX,
+      frameY: boxY,
+      frameWidth: boxWidth,
+      frameHeight: maxBoxHeight,
+      mediaX: boxX,
+      mediaY: boxY,
+      mediaWidth: boxWidth,
+      mediaHeight: maxBoxHeight,
+    };
+  }
+
+  const ratio = sourceWidth / sourceHeight;
+
+  let mediaWidth = boxWidth;
+  let mediaHeight = mediaWidth / ratio;
+
+  if (mediaHeight > maxBoxHeight) {
+    mediaHeight = maxBoxHeight;
+    mediaWidth = mediaHeight * ratio;
+  }
+
+  const mediaX = boxX + (boxWidth - mediaWidth) / 2;
+  const mediaY = boxY;
+
+  return {
+    frameX: mediaX,
+    frameY: mediaY,
+    frameWidth: mediaWidth,
+    frameHeight: mediaHeight,
+    mediaX,
+    mediaY,
+    mediaWidth,
+    mediaHeight,
+  };
+}
+
+  const ratio = sourceWidth / sourceHeight;
+
+  let mediaWidth = boxWidth;
+  let mediaHeight = mediaWidth / ratio;
+
+  if (mediaHeight > maxBoxHeight) {
+    mediaHeight = maxBoxHeight;
+    mediaWidth = mediaHeight * ratio;
+  }
+
+  const mediaX = boxX + (boxWidth - mediaWidth) / 2;
+  const mediaY = boxY;
+
+  return {
+    frameX: boxX,
+    frameY: boxY,
+    frameWidth: boxWidth,
+    frameHeight: mediaHeight,
+    mediaX,
+    mediaY,
+    mediaWidth,
+    mediaHeight,
+  };
+}
 
 async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
   if (typeof window === "undefined") return;
@@ -3058,6 +3140,7 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
 
   const duration = Math.min(Math.max(video.duration || 6, 3), 30);
   const stream = canvas.captureStream(30);
+
   const supportedType = [
     "video/mp4;codecs=h264",
     "video/webm;codecs=vp9",
@@ -3130,10 +3213,24 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
     context.fillStyle = isWin ? "#86EFAC" : "#FDA4AF";
     context.font = "800 15px Arial";
     context.textAlign = "center";
-    context.fillText(String(trade.direction || "Trade").toUpperCase(), 950, 132);
+    context.fillText(
+      String(trade.direction || "Trade").toUpperCase(),
+      950,
+      132
+    );
     context.textAlign = "left";
 
-    drawCanvasMetric(context, 64, 330, 460, 132, "Resultado", formatExportMoney(resultNumber), accent);
+    drawCanvasMetric(
+      context,
+      64,
+      330,
+      460,
+      132,
+      "Resultado",
+      formatExportMoney(resultNumber),
+      accent
+    );
+
     drawCanvasMetric(
       context,
       542,
@@ -3141,7 +3238,9 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
       474,
       132,
       "Riesgo",
-      `$${riskNumber.toLocaleString("en-US", { maximumFractionDigits: 2 })}`,
+      `$${riskNumber.toLocaleString("en-US", {
+        maximumFractionDigits: 2,
+      })}`,
       "#FFFFFF"
     );
 
@@ -3155,7 +3254,15 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
     context.fillText("Setup", 88, 526);
     context.fillStyle = setupAccent;
     context.font = "900 34px Arial";
-    drawWrappedText(context, trade.setup || "Sin setup registrado", 88, 568, 850, 38, 1);
+    drawWrappedText(
+      context,
+      trade.setup || "Sin setup registrado",
+      88,
+      568,
+      850,
+      38,
+      1
+    );
 
     context.fillStyle = "rgba(255,255,255,0.58)";
     context.font = "800 18px Arial";
@@ -3165,32 +3272,74 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
     context.fillStyle = "rgba(255,255,255,0.18)";
     context.fillRect(952, 672, 64, 1);
 
-    drawRoundRect(context, 64, 704, 952, 876, 34);
+    const mediaLayout = getContainedMediaRect(
+      video.videoWidth || 1080,
+      video.videoHeight || 1920,
+      82,
+      722,
+      916,
+      840
+    );
+
+    drawRoundRect(
+      context,
+      mediaLayout.frameX - 18,
+      mediaLayout.frameY - 18,
+      mediaLayout.frameWidth + 36,
+      mediaLayout.frameHeight + 36,
+      34
+    );
     context.fillStyle = "rgba(255,255,255,0.035)";
     context.fill();
     context.strokeStyle = "rgba(255,255,255,0.12)";
     context.stroke();
 
-    drawRoundRect(context, 82, 722, 916, 840, 24);
+    drawRoundRect(
+      context,
+      mediaLayout.frameX,
+      mediaLayout.frameY,
+      mediaLayout.frameWidth,
+      mediaLayout.frameHeight,
+      24
+    );
     context.fillStyle = "#0b1220";
     context.fill();
+
     context.save();
-    drawRoundRect(context, 82, 722, 916, 840, 24);
+    drawRoundRect(
+      context,
+      mediaLayout.frameX,
+      mediaLayout.frameY,
+      mediaLayout.frameWidth,
+      mediaLayout.frameHeight,
+      24
+    );
     context.clip();
-    drawContainVideoFrame(context, video, 82, 722, 916, 840);
+
+    drawContainVideoFrame(
+      context,
+      video,
+      mediaLayout.mediaX,
+      mediaLayout.mediaY,
+      mediaLayout.mediaWidth,
+      mediaLayout.mediaHeight
+    );
+
     context.restore();
 
+    const footerY = mediaLayout.frameY + mediaLayout.frameHeight + 120;
+
     context.fillStyle = "rgba(255,255,255,0.10)";
-    context.fillRect(64, 1712, 952, 1);
+    context.fillRect(64, footerY - 36, 952, 1);
 
     context.fillStyle = "rgba(255,255,255,0.82)";
     context.font = "500 23px Arial";
     context.textAlign = "center";
-    context.fillText("Plan. Riesgo. Disciplina.", 540, 1762);
+    context.fillText("Plan. Riesgo. Disciplina.", 540, footerY + 14);
 
     context.fillStyle = "rgba(255,255,255,0.32)";
     context.font = "700 15px Arial";
-    context.fillText(`${trade.account || "Cuenta"} · Life OS`, 540, 1794);
+    context.fillText(`${trade.account || "Cuenta"} · Life OS`, 540, footerY + 46);
     context.textAlign = "left";
   }
 
@@ -3226,7 +3375,9 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
   const downloadLink = document.createElement("a");
 
   downloadLink.href = url;
-  downloadLink.download = `${sanitizeFileName(fileName) || "lifeos-video"}.${extension}`;
+  downloadLink.download = `${
+    sanitizeFileName(fileName) || "lifeos-video"
+  }.${extension}`;
   downloadLink.click();
 
   URL.revokeObjectURL(url);
