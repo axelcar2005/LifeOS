@@ -2723,11 +2723,7 @@ function SocialTradeExportCard({
           </p>
         </div>
 
-        <div
-          style={{
-            marginTop: "26px",
-          }}
-        >
+        <div style={{ marginTop: "26px" }}>
           <div
             style={{
               display: "flex",
@@ -2759,22 +2755,26 @@ function SocialTradeExportCard({
 
           <div
             style={{
-              borderRadius: "34px",
-              border: "1px solid rgba(255,255,255,0.12)",
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
-              padding: "18px",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
             }}
           >
-            <div
-              style={{
-                width: "100%",
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              {selectedTrade.image ? (
+            {selectedTrade.image ? (
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  maxWidth: "100%",
+                  borderRadius: "34px",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background:
+                    "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
+                  padding: "18px",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+                }}
+              >
                 <div
                   style={{
                     display: "inline-flex",
@@ -2784,7 +2784,6 @@ function SocialTradeExportCard({
                     borderRadius: "24px",
                     overflow: "hidden",
                     background: "#0b1220",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
                   }}
                 >
                   {isTradeVideo(selectedTrade.image) ? (
@@ -2797,7 +2796,7 @@ function SocialTradeExportCard({
                         display: "block",
                         width: "auto",
                         height: "auto",
-                        maxWidth: "100%",
+                        maxWidth: "916px",
                         maxHeight: "840px",
                         objectFit: "contain",
                         objectPosition: "center",
@@ -2812,7 +2811,7 @@ function SocialTradeExportCard({
                         display: "block",
                         width: "auto",
                         height: "auto",
-                        maxWidth: "100%",
+                        maxWidth: "916px",
                         maxHeight: "840px",
                         objectFit: "contain",
                         objectPosition: "center",
@@ -2821,26 +2820,26 @@ function SocialTradeExportCard({
                     />
                   )}
                 </div>
-              ) : (
-                <div
-                  style={{
-                    width: "100%",
-                    minHeight: "520px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: "24px",
-                    color: "rgba(255,255,255,0.42)",
-                    fontSize: "22px",
-                    fontWeight: 600,
-                    background:
-                      "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
-                  }}
-                >
-                  Este trade no tiene imagen o video guardado.
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  minHeight: "520px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "24px",
+                  color: "rgba(255,255,255,0.42)",
+                  fontSize: "22px",
+                  fontWeight: 600,
+                  background:
+                    "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
+                }}
+              >
+                Este trade no tiene imagen o video guardado.
+              </div>
+            )}
           </div>
         </div>
 
@@ -3086,31 +3085,6 @@ function getContainedMediaRect(
   };
 }
 
-  const ratio = sourceWidth / sourceHeight;
-
-  let mediaWidth = boxWidth;
-  let mediaHeight = mediaWidth / ratio;
-
-  if (mediaHeight > maxBoxHeight) {
-    mediaHeight = maxBoxHeight;
-    mediaWidth = mediaHeight * ratio;
-  }
-
-  const mediaX = boxX + (boxWidth - mediaWidth) / 2;
-  const mediaY = boxY;
-
-  return {
-    frameX: boxX,
-    frameY: boxY,
-    frameWidth: boxWidth,
-    frameHeight: mediaHeight,
-    mediaX,
-    mediaY,
-    mediaWidth,
-    mediaHeight,
-  };
-}
-
 async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
   if (typeof window === "undefined") return;
 
@@ -3327,7 +3301,7 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
 
     context.restore();
 
-    const footerY = mediaLayout.frameY + mediaLayout.frameHeight + 120;
+    const footerY = Math.min(mediaLayout.frameY + mediaLayout.frameHeight + 120, 1712);
 
     context.fillStyle = "rgba(255,255,255,0.10)";
     context.fillRect(64, footerY - 36, 952, 1);
