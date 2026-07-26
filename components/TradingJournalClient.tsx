@@ -2458,8 +2458,8 @@ function SocialTradeExportCard({
   const cardHeight = isVertical ? 1920 : 1080;
 
   const paddingX = isVertical ? 64 : 56;
-  const paddingTop = isVertical ? 72 : 52;
-  const paddingBottom = isVertical ? 58 : 46;
+const paddingTop = isVertical ? 120 : 88;
+const paddingBottom = isVertical ? 120 : 88;
 
   const titleSize = isVertical ? 86 : 68;
   const metaSize = isVertical ? 17 : 16;
@@ -2609,13 +2609,13 @@ function SocialTradeExportCard({
 
         {/* Metrics */}
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            gap: isVertical ? "18px" : "16px",
-            marginTop: isVertical ? "34px" : "26px",
-          }}
-        >
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: isVertical ? "18px" : "16px",
+    marginTop: isVertical ? "34px" : "26px",
+  }}
+>
           <ExportMetric
             label="Resultado"
             value={formatExportMoney(resultNumber)}
@@ -2632,12 +2632,7 @@ function SocialTradeExportCard({
             compact={!isVertical}
           />
 
-          <ExportMetric
-            label="Emoción"
-            value={selectedTrade.emotion || "Disciplinado"}
-            color="#FFFFFF"
-            compact={!isVertical}
-          />
+        
         </div>
 
         {/* Setup */}
@@ -2763,10 +2758,10 @@ function SocialTradeExportCard({
 
         {/* Footer */}
         <div
-          style={{
-            marginTop: isVertical ? "26px" : "20px",
-          }}
-        >
+  style={{
+    marginTop: isVertical ? "42px" : "30px",
+  }}
+>
           <div
             style={{
               width: "100%",
