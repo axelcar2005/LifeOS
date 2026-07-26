@@ -2988,8 +2988,13 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
   canvas.width = 1080;
   canvas.height = 1920;
 
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("No se pudo crear el canvas del video.");
+  const rawContext = canvas.getContext("2d");
+
+  if (!rawContext) {
+    throw new Error("No se pudo crear el canvas del video.");
+  }
+
+  const context = rawContext;
 
   const video = document.createElement("video");
   video.src = trade.image || "";
