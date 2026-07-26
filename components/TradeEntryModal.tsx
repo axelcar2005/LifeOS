@@ -7,7 +7,9 @@ import {
   useRef,
   useState,
 } from "react";
-import { FileVideo, ImagePlus, Plus, X } from "lucide-react";
+import { FileVideo, ImagePlus, Loader2, Plus, X } from "lucide-react";
+
+import { supabase } from "@/lib/supabase";
 
 export type Trade = {
   id: string;
@@ -53,12 +55,61 @@ function createInitialForm() {
   };
 }
 
+function isVideoMedia(value: string) {
+  const lowerValue = value.toLowerCase();
+
+  return (
+    lowerValue.startsWith("blob:") ||
+    lowerValue.startsWith("data:video") ||
+    lowerValue.includes(".mp4") ||
+    lowerValue.includes(".webm") ||
+    lowerValue.includes(".mov") ||
+    lowerValue.includes(".m4v")
+  );
+}
+
+async function uploadTradeMedia(file: File) {
+  const response = await fetch("/api/trade-media/sign-upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "No se pudo preparar la subida del archivo.");
+  }
+
+  const { error } = await supabase.storage
+    .from("trade-media")
+    .uploadToSignedUrl(data.path, data.token, file, {
+      contentType: file.type || "application/octet-stream",
+      upsert: true,
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data.publicUrl as string;
+}
+
 export function TradeEntryModal({
   onAddTrade,
   accounts = [],
 }: TradeEntryModalProps) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(createInitialForm);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState("");
+  const [saving, setSaving] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   function updateField(field: keyof ReturnType<typeof createInitialForm>, value: string) {
@@ -75,17 +126,9 @@ export function TradeEntryModal({
   function readMediaFile(file: File) {
     if (!isSupportedMedia(file)) return;
 
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      updateField("image", String(reader.result));
-    };
-
-    reader.readAsDataURL(file);
-  }
-
-  function isVideoMedia(value: string) {
-    return value.toLowerCase().startsWith("data:video");
+    setMediaFile(file);
+    setMediaPreview(URL.createObjectURL(file));
+    updateField("image", "");
   }
 
   function handlePaste(event: ClipboardEvent<HTMLDivElement>) {
@@ -107,24 +150,41 @@ export function TradeEntryModal({
     }
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault();
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-  const selectedAccounts =
-    form.account === "__all__" ? accounts : [form.account];
+    try {
+      setSaving(true);
 
-  selectedAccounts.forEach((account) => {
-    onAddTrade({
-      id: `${Date.now()}-${Math.random()}`,
-      ...form,
-      account,
-      status: "Registrado",
-    });
-  });
+      const mediaUrl = mediaFile ? await uploadTradeMedia(mediaFile) : form.image;
+      const selectedAccounts =
+        form.account === "__all__" ? accounts : [form.account];
 
-  setForm(createInitialForm());
-  setOpen(false);
-}
+      selectedAccounts.forEach((account) => {
+        onAddTrade({
+          id: `${Date.now()}-${Math.random()}`,
+          ...form,
+          image: mediaUrl,
+          account,
+          status: "Registrado",
+        });
+      });
+
+      setForm(createInitialForm());
+      setMediaFile(null);
+      setMediaPreview("");
+      setOpen(false);
+    } catch (error) {
+      console.error("Error subiendo media del trade:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "No se pudo subir la imagen o video del trade."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <>
@@ -311,17 +371,17 @@ export function TradeEntryModal({
                 tabIndex={0}
                 className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/40 p-5 text-center outline-none transition focus:border-emerald-400"
               >
-                {form.image ? (
-                  isVideoMedia(form.image) ? (
+                {mediaPreview || form.image ? (
+                  isVideoMedia(mediaPreview || form.image) ? (
                     <video
-                      src={form.image}
+                      src={mediaPreview || form.image}
                       controls
                       playsInline
                       className="max-h-[360px] w-full rounded-2xl bg-black object-contain"
                     />
                   ) : (
                     <img
-                      src={form.image}
+                      src={mediaPreview || form.image}
                       alt="Captura del trade"
                       className="max-h-[360px] w-full rounded-2xl object-contain"
                     />
@@ -377,9 +437,11 @@ También puedes subir una imagen o video desde tu PC.
 
               <button
                 type="submit"
-                className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-emerald-300"
+                disabled={saving}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Guardar operación
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                {saving ? "Subiendo..." : "Guardar operación"}
               </button>
             </div>
           </form>

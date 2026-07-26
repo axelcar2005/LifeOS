@@ -76,6 +76,7 @@ export async function POST(request: Request) {
     );
   }
 }
+
 export async function PATCH(request: Request) {
   try {
     const { userId } = await auth();
@@ -87,7 +88,10 @@ export async function PATCH(request: Request) {
     const body = await request.json();
 
     if (!body.id) {
-      return NextResponse.json({ error: "Falta el id del trade" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Falta el id del trade" },
+        { status: 400 }
+      );
     }
 
     const updatedTrade = {
@@ -139,7 +143,10 @@ export async function DELETE(request: Request) {
     const tradeId = searchParams.get("id");
 
     if (!tradeId) {
-      return NextResponse.json({ error: "Falta el id del trade" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Falta el id del trade" },
+        { status: 400 }
+      );
     }
 
     const { error } = await supabaseAdmin

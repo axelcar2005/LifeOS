@@ -10,6 +10,7 @@ import {
   type RefObject,
 } from "react";
 import html2canvas from "html2canvas";
+import { supabase } from "@/lib/supabase";
 import {
   BarChart3,
   Brain,
@@ -113,6 +114,39 @@ function getExportColor(color: string) {
   };
 
   return colors[color] ?? "#ffffff";
+}
+
+async function uploadTradeMedia(file: File) {
+  const response = await fetch("/api/trade-media/sign-upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "No se pudo preparar la subida del archivo.");
+  }
+
+  const { error } = await supabase.storage
+    .from("trade-media")
+    .uploadToSignedUrl(data.path, data.token, file, {
+      contentType: file.type || "application/octet-stream",
+      upsert: true,
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data.publicUrl as string;
 }
 
 function addDaysToDateKey(dateKey: string, daysToAdd: number) {
@@ -363,18 +397,27 @@ export function TradingJournalClient() {
     });
   }
 
-  function handleEditImageChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleEditImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
-    const reader = new FileReader();
+    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+      alert("Solo puedes subir imagen o video.");
+      return;
+    }
 
-    reader.onload = () => {
-      updateEditingTrade("image", String(reader.result || ""));
-    };
-
-    reader.readAsDataURL(file);
+    try {
+      const mediaUrl = await uploadTradeMedia(file);
+      updateEditingTrade("image", mediaUrl);
+    } catch (error) {
+      console.error("Error subiendo media editada:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "No se pudo subir la imagen o video."
+      );
+    }
   }
 
   async function saveEditedTrade(event: FormEvent<HTMLFormElement>) {
@@ -2379,12 +2422,12 @@ export function TradingJournalClient() {
               </label>
 
               <label className="space-y-2 md:col-span-2">
-                <span className="text-xs text-white/40">Cambiar imagen</span>
+                <span className="text-xs text-white/40">Cambiar imagen / video</span>
 
                 <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/40 p-4">
                   <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/90">
                     <Upload size={16} />
-                    Subir imagen
+                    Subir archivo
                     <input
                       type="file"
                       accept="image/*,video/*"
@@ -2394,14 +2437,23 @@ export function TradingJournalClient() {
                   </label>
 
                   {editingTrade.image ? (
-                    <img
-                      src={editingTrade.image}
-                      alt="Imagen editada"
-                      className="max-h-64 w-full rounded-2xl object-contain"
-                    />
+                    isTradeVideo(editingTrade.image) ? (
+                      <video
+                        src={editingTrade.image}
+                        controls
+                        playsInline
+                        className="max-h-64 w-full rounded-2xl bg-black object-contain"
+                      />
+                    ) : (
+                      <img
+                        src={editingTrade.image}
+                        alt="Imagen editada"
+                        className="max-h-64 w-full rounded-2xl object-contain"
+                      />
+                    )
                   ) : (
                     <p className="text-sm text-white/40">
-                      Este trade no tiene imagen.
+                      Este trade no tiene imagen o video.
                     </p>
                   )}
                 </div>
