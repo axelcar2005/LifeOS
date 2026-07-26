@@ -2543,7 +2543,7 @@ function SocialTradeExportCard({
         overflow: "hidden",
         boxSizing: "border-box",
         borderRadius: "0px",
-        padding: "170px 64px 120px",
+        padding: "220px 64px 120px",
         color: "#FFFFFF",
         fontFamily:
           'Inter, "Helvetica Neue", Arial, system-ui, -apple-system, sans-serif',
@@ -2675,6 +2675,7 @@ function SocialTradeExportCard({
             label="Resultado"
             value={formatExportMoney(resultNumber)}
             color={accent}
+            icon="result"
           />
 
           <ExportMetric
@@ -2683,6 +2684,7 @@ function SocialTradeExportCard({
               maximumFractionDigits: 2,
             })}`}
             color="#FFFFFF"
+            icon="risk"
           />
         </div>
 
@@ -2885,12 +2887,15 @@ function ExportMetric({
   label,
   value,
   color,
+  icon,
 }: {
   label: string;
   value: string;
   color: string;
+  icon: "result" | "risk";
 }) {
   const valueSize = getMetricValueSize(value);
+  const Icon = icon === "result" ? TrendingUp : ShieldCheck;
 
   return (
     <div
@@ -2925,14 +2930,20 @@ function ExportMetric({
 
         <div
           style={{
-            width: "12px",
-            height: "12px",
+            width: "34px",
+            height: "34px",
             borderRadius: "999px",
-            background: color,
-            boxShadow: `0 0 18px ${color}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "1px solid rgba(255,255,255,0.14)",
+            background: "rgba(255,255,255,0.05)",
+            boxShadow: `0 0 20px ${color}22`,
             flexShrink: 0,
           }}
-        />
+        >
+          <Icon size={16} color={color} strokeWidth={2.2} />
+        </div>
       </div>
 
       <p
@@ -3074,9 +3085,9 @@ function getContainedMediaRect(
   const mediaY = boxY;
 
   return {
-    frameX: mediaX,
-    frameY: mediaY,
-    frameWidth: mediaWidth,
+    frameX: boxX,
+    frameY: boxY,
+    frameWidth: boxWidth,
     frameHeight: mediaHeight,
     mediaX,
     mediaY,
@@ -3146,7 +3157,9 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
     const isWin = resultNumber >= 0;
     const accent = isWin ? "#6EE7B7" : "#FB7185";
     const setupAccent = "#FACC15";
-    const topOffset = 70;
+    const topOffset = 110;
+
+    context.clearRect(0, 0, 1080, 1920);
 
     const gradient = context.createLinearGradient(0, 0, 0, 1920);
     gradient.addColorStop(0, "#020617");
@@ -3163,24 +3176,21 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
 
     context.fillStyle = "#A7F3D0";
     context.font = "800 18px Arial";
-    context.letterSpacing = "3px";
     context.fillText("LIFE OS TRADING JOURNAL", 64, 128 + topOffset);
 
     context.fillStyle = "#FFFFFF";
     context.font = "900 86px Arial";
-    context.letterSpacing = "-4px";
     context.fillText("Trade Recap", 64, 244 + topOffset);
 
     context.fillStyle = "rgba(255,255,255,0.56)";
     context.font = "500 17px Arial";
-    context.letterSpacing = "0px";
     context.fillText(
-  `${trade.date} · ${trade.asset || "MNQ"} · ${trade.direction || "Long"}`,
-  64,
-  278 + topOffset
-);
+      `${trade.date} · ${trade.asset || "MNQ"} · ${trade.direction || "Long"}`,
+      64,
+      278 + topOffset
+    );
 
-    drawRoundRect(context, 64, 704 + topOffset, 952, 876, 34);
+    drawRoundRect(context, 888, 74 + topOffset, 128, 50, 25);
     context.fillStyle = "rgba(255,255,255,0.04)";
     context.fill();
     context.strokeStyle = "rgba(255,255,255,0.14)";
@@ -3189,35 +3199,37 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
     context.font = "800 15px Arial";
     context.textAlign = "center";
     context.fillText(
-  String(trade.direction || "Trade").toUpperCase(),
-  950,
-  132 + topOffset
-);
+      String(trade.direction || "Trade").toUpperCase(),
+      952,
+      106 + topOffset
+    );
     context.textAlign = "left";
 
     drawCanvasMetric(
-  context,
-  64,
-  330 + topOffset,
-  460,
-  132,
-  "Resultado",
-  formatExportMoney(resultNumber),
-  accent
-);
+      context,
+      64,
+      330 + topOffset,
+      460,
+      132,
+      "Resultado",
+      formatExportMoney(resultNumber),
+      accent,
+      "result"
+    );
 
     drawCanvasMetric(
-  context,
-  542,
-  330 + topOffset,
-  474,
-  132,
-  "Riesgo",
-  `$${riskNumber.toLocaleString("en-US", { maximumFractionDigits: 2 })}`,
-  "#FFFFFF"
-);
+      context,
+      542,
+      330 + topOffset,
+      474,
+      132,
+      "Riesgo",
+      `$${riskNumber.toLocaleString("en-US", { maximumFractionDigits: 2 })}`,
+      "#FFFFFF",
+      "risk"
+    );
 
-    drawRoundRect(context, 82, 722 + topOffset, 916, 840, 24);
+    drawRoundRect(context, 64, 486 + topOffset, 952, 132, 26);
     context.fillStyle = "rgba(255,255,255,0.035)";
     context.fill();
     context.strokeStyle = "rgba(255,255,255,0.12)";
@@ -3228,20 +3240,18 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
     context.fillStyle = setupAccent;
     context.font = "900 34px Arial";
     drawWrappedText(
-  context,
-  trade.setup || "Sin setup registrado",
-  88,
-  568 + topOffset,
-  850,
-  38,
-  1
-);
+      context,
+      trade.setup || "Sin setup registrado",
+      88,
+      568 + topOffset,
+      850,
+      38,
+      1
+    );
 
     context.fillStyle = "rgba(255,255,255,0.58)";
     context.font = "800 18px Arial";
-    context.letterSpacing = "3px";
     context.fillText("EXECUTION CHART", 64, 684 + topOffset);
-    context.letterSpacing = "0px";
     context.fillStyle = "rgba(255,255,255,0.18)";
     context.fillRect(952, 672 + topOffset, 64, 1);
 
@@ -3249,22 +3259,18 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
       video.videoWidth || 1080,
       video.videoHeight || 1920,
       82,
-      722,
+      722 + topOffset,
       916,
       840
     );
 
-    drawRoundRect(
-      context,
-      mediaLayout.frameX - 18,
-      mediaLayout.frameY - 18,
-      mediaLayout.frameWidth + 36,
-      mediaLayout.frameHeight + 36,
-      34
-    );
-    context.fillStyle = "rgba(255,255,255,0.035)";
+    const chartSectionY = 704 + topOffset;
+    const chartSectionHeight = mediaLayout.frameHeight + 54;
+
+    drawRoundRect(context, 64, chartSectionY, 952, chartSectionHeight, 34);
+    context.fillStyle = "rgba(255,255,255,0.04)";
     context.fill();
-    context.strokeStyle = "rgba(255,255,255,0.12)";
+    context.strokeStyle = "rgba(255,255,255,0.14)";
     context.stroke();
 
     drawRoundRect(
@@ -3300,23 +3306,19 @@ async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
 
     context.restore();
 
-    const footerY = Math.min(mediaLayout.frameY + mediaLayout.frameHeight + 120, 1712);
+    const footerY = Math.min(chartSectionY + chartSectionHeight + 90, 1758);
 
     context.fillStyle = "rgba(255,255,255,0.10)";
-    context.fillRect(64, footerY - 36, 952, 1);
+    context.fillRect(64, footerY - 42, 952, 1);
 
     context.fillStyle = "rgba(255,255,255,0.82)";
     context.font = "500 23px Arial";
     context.textAlign = "center";
-    context.fillText("Plan. Riesgo. Disciplina.", 540, 1762 + topOffset);
+    context.fillText("Plan. Riesgo. Disciplina.", 540, footerY + 10);
 
     context.fillStyle = "rgba(255,255,255,0.32)";
     context.font = "700 15px Arial";
-    context.fillText(
-  `${trade.account || "Cuenta"} · Life OS`,
-  540,
-  1794 + topOffset
-);
+    context.fillText(`${trade.account || "Cuenta"} · Life OS`, 540, footerY + 42);
     context.textAlign = "left";
   }
 
@@ -3368,7 +3370,8 @@ function drawCanvasMetric(
   height: number,
   label: string,
   value: string,
-  color: string
+  color: string,
+  icon: "result" | "risk"
 ) {
   drawRoundRect(context, x, y, width, height, 26);
   context.fillStyle = "rgba(255,255,255,0.035)";
@@ -3381,11 +3384,23 @@ function drawCanvasMetric(
   context.fillText(label, x + 24, y + 44);
 
   context.fillStyle = color;
-  context.font = "900 58px Arial";
+  context.font = `900 ${getMetricValueSize(value)}px Arial`;
   context.fillText(value, x + 24, y + 104);
 
-  context.beginPath();
-  context.arc(x + width - 24, y + 30, 6, 0, Math.PI * 2);
-  context.fillStyle = color;
+  const badgeX = x + width - 52;
+  const badgeY = y + 18;
+
+  drawRoundRect(context, badgeX, badgeY, 34, 34, 17);
+  context.fillStyle = "rgba(255,255,255,0.05)";
   context.fill();
+  context.strokeStyle = "rgba(255,255,255,0.14)";
+  context.stroke();
+
+  context.fillStyle = color;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.font = icon === "result" ? "900 18px Arial" : "900 17px Arial";
+  context.fillText(icon === "result" ? "↗" : "$", badgeX + 17, badgeY + 18);
+  context.textAlign = "left";
+  context.textBaseline = "alphabetic";
 }
