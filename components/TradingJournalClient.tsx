@@ -230,14 +230,9 @@ export function TradingJournalClient() {
   });
 
   const selectedTradeExportRef = useRef<HTMLDivElement | null>(null);
-const socialPostSquareExportRef = useRef<HTMLDivElement | null>(null);
-const socialPostVerticalExportRef = useRef<HTMLDivElement | null>(null);
-const weeklyReportExportRef = useRef<HTMLDivElement | null>(null);
-const monthlyReportExportRef = useRef<HTMLDivElement | null>(null);
-
-const [socialExportFormat, setSocialExportFormat] = useState<
-  "square" | "vertical"
->("vertical");
+  const socialPostVerticalExportRef = useRef<HTMLDivElement | null>(null);
+  const weeklyReportExportRef = useRef<HTMLDivElement | null>(null);
+  const monthlyReportExportRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
   async function loadTradingData() {
@@ -479,19 +474,33 @@ const [socialExportFormat, setSocialExportFormat] = useState<
     );
   }
 
-  function exportSocialPostAsImage(format = socialExportFormat) {
-  if (!selectedTrade) return;
+  function exportSocialPostAsImage() {
+    if (!selectedTrade) return;
 
-  const exportRef =
-    format === "square" ? socialPostSquareExportRef : socialPostVerticalExportRef;
+    exportElementAsImage(
+      socialPostVerticalExportRef.current,
+      `post9-16-${selectedTrade.date}-${selectedTrade.account}-${selectedTrade.asset}`
+    );
+  }
 
-  exportElementAsImage(
-    exportRef.current,
-    `${format === "square" ? "post-1x1" : "post-vertical"}-${
-      selectedTrade.date
-    }-${selectedTrade.account}-${selectedTrade.asset}`
-  );
-}
+  async function exportSocialPostAsVideo() {
+    if (!selectedTrade) return;
+
+    if (!selectedTrade.image || !isTradeVideo(selectedTrade.image)) {
+      alert("Para exportar video 9:16, primero sube un video del trade.");
+      return;
+    }
+
+    try {
+      await exportTradePostVideo9x16(
+        selectedTrade,
+        `video9-16-${selectedTrade.date}-${selectedTrade.account}-${selectedTrade.asset}`
+      );
+    } catch (error) {
+      console.error("Error exportando video 9:16:", error);
+      alert("No se pudo exportar el video 9:16. Prueba con un video más corto o más liviano.");
+    }
+  }
 
   function exportWeeklyReportAsImage() {
     exportElementAsImage(
@@ -2050,34 +2059,36 @@ const [socialExportFormat, setSocialExportFormat] = useState<
                       margin: "0 0 12px",
                     }}
                   >
-                    Imagen del trade
+                    Imagen / video del trade
                   </p>
 
-                  <img
-                    src={selectedTrade.image}
-                    alt="Imagen del trade"
-                    style={{
-                      width: "100%",
-                      maxHeight: "620px",
-                      objectFit: "contain",
-                      borderRadius: "14px",
-                    }}
-                  />
+                  {isTradeVideo(selectedTrade.image) ? (
+                    <video
+                      src={selectedTrade.image}
+                      controls
+                      playsInline
+                      className="max-h-[620px] w-full rounded-2xl bg-black object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={selectedTrade.image}
+                      alt="Imagen del trade"
+                      style={{
+                        width: "100%",
+                        maxHeight: "620px",
+                        objectFit: "contain",
+                        borderRadius: "14px",
+                      }}
+                    />
+                  )}
                 </div>
               )}
             </div>
 
             <SocialTradeExportCard
-  selectedTrade={selectedTrade}
-  variant="square"
-  cardRef={socialPostSquareExportRef}
-/>
-
-<SocialTradeExportCard
-  selectedTrade={selectedTrade}
-  variant="vertical"
-  cardRef={socialPostVerticalExportRef}
-/>
+              selectedTrade={selectedTrade}
+              cardRef={socialPostVerticalExportRef}
+            />
           </>
         )}
       </div>
@@ -2135,26 +2146,23 @@ const [socialExportFormat, setSocialExportFormat] = useState<
                   Exportar PNG
                 </button>
 
-                <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-1">
-  <select
-    value={socialExportFormat}
-    onChange={(event) =>
-      setSocialExportFormat(event.target.value as "square" | "vertical")
-    }
-    className="rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-xs font-semibold text-white outline-none"
-  >
-    <option value="vertical">Vertical IG</option>
-    <option value="square">Post 1:1</option>
-  </select>
+                <button
+                  onClick={exportSocialPostAsImage}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-white/90"
+                >
+                  <Download size={16} />
+                  Post 9:16
+                </button>
 
-  <button
-    onClick={() => exportSocialPostAsImage()}
-    className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-xs font-bold text-black transition hover:bg-white/90"
-  >
-    <Download size={15} />
-    Descargar
-  </button>
-</div>
+                {selectedTrade.image && isTradeVideo(selectedTrade.image) && (
+                  <button
+                    onClick={exportSocialPostAsVideo}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400 px-4 py-2 text-sm font-bold text-black transition hover:bg-emerald-300"
+                  >
+                    <Download size={16} />
+                    Video 9:16
+                  </button>
+                )}
 
                 <button
                   onClick={() => openEditTrade(selectedTrade)}
@@ -2379,7 +2387,7 @@ const [socialExportFormat, setSocialExportFormat] = useState<
                     Subir imagen
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,video/*"
                       onChange={handleEditImageChange}
                       className="hidden"
                     />
@@ -2422,6 +2430,20 @@ const [socialExportFormat, setSocialExportFormat] = useState<
     </>
   );
 }
+function isTradeVideo(media?: string) {
+  if (!media) return false;
+
+  const value = media.toLowerCase();
+
+  return (
+    value.startsWith("data:video") ||
+    value.includes(".mp4") ||
+    value.includes(".webm") ||
+    value.includes(".mov") ||
+    value.includes(".m4v")
+  );
+}
+
 function formatExportMoney(value: number) {
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
   const amount = Math.abs(value).toLocaleString("en-US", {
@@ -2431,40 +2453,24 @@ function formatExportMoney(value: number) {
   return `${sign}$${amount}`;
 }
 
-function getMetricValueSize(value: string, compact: boolean) {
-  if (value.length > 18) return compact ? 26 : 34;
-  if (value.length > 12) return compact ? 30 : 40;
-  return compact ? 36 : 50;
+function getMetricValueSize(value: string) {
+  if (value.length > 18) return 38;
+  if (value.length > 12) return 46;
+  return 58;
 }
 
 function SocialTradeExportCard({
   selectedTrade,
-  variant,
   cardRef,
 }: {
   selectedTrade: Trade;
-  variant: "square" | "vertical";
   cardRef: RefObject<HTMLDivElement | null>;
 }) {
   const resultNumber = Number(selectedTrade.result || 0);
   const riskNumber = Number(selectedTrade.risk || 0);
   const isWin = resultNumber >= 0;
-  const isVertical = variant === "vertical";
-
   const accent = isWin ? "#6EE7B7" : "#FB7185";
   const setupAccent = "#FACC15";
-
-  const cardWidth = 1080;
-  const cardHeight = isVertical ? 1920 : 1080;
-
-  const paddingX = isVertical ? 64 : 56;
-const paddingTop = isVertical ? 120 : 88;
-const paddingBottom = isVertical ? 120 : 88;
-
-  const titleSize = isVertical ? 86 : 68;
-  const metaSize = isVertical ? 17 : 16;
-  const chartHeight = isVertical ? 860 : 420;
-  const setupSize = isVertical ? 34 : 28;
 
   const metaText = [
     selectedTrade.date,
@@ -2478,17 +2484,14 @@ const paddingBottom = isVertical ? 120 : 88;
     <div
       ref={cardRef}
       style={{
-        
-        
-        
-        width: `${cardWidth}px`,
-        height: `${cardHeight}px`,
+        width: "1080px",
+        height: "1920px",
         marginTop: "32px",
         position: "relative",
         overflow: "hidden",
         boxSizing: "border-box",
-        borderRadius: isVertical ? "0px" : "34px",
-        padding: `${paddingTop}px ${paddingX}px ${paddingBottom}px`,
+        borderRadius: "0px",
+        padding: "120px 64px 120px",
         color: "#FFFFFF",
         fontFamily:
           'Inter, "Helvetica Neue", Arial, system-ui, -apple-system, sans-serif',
@@ -2496,7 +2499,6 @@ const paddingBottom = isVertical ? 120 : 88;
           "linear-gradient(180deg, #020617 0%, #020617 34%, #000000 100%)",
       }}
     >
-      {/* Fondo elegante sin círculos feos */}
       <div
         style={{
           position: "absolute",
@@ -2514,7 +2516,7 @@ const paddingBottom = isVertical ? 120 : 88;
           opacity: 0.08,
           backgroundImage:
             "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)",
-          backgroundSize: isVertical ? "64px 64px" : "58px 58px",
+          backgroundSize: "64px 64px",
           pointerEvents: "none",
         }}
       />
@@ -2524,7 +2526,7 @@ const paddingBottom = isVertical ? 120 : 88;
           position: "absolute",
           top: 0,
           right: 0,
-          width: isVertical ? "240px" : "190px",
+          width: "240px",
           height: "100%",
           background:
             "linear-gradient(90deg, transparent 0%, rgba(45,212,191,0.08) 100%)",
@@ -2543,7 +2545,6 @@ const paddingBottom = isVertical ? 120 : 88;
           height: "100%",
         }}
       >
-        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -2557,7 +2558,7 @@ const paddingBottom = isVertical ? 120 : 88;
               style={{
                 margin: 0,
                 color: "#A7F3D0",
-                fontSize: isVertical ? "18px" : "16px",
+                fontSize: "18px",
                 fontWeight: 800,
                 letterSpacing: "0.18em",
                 textTransform: "uppercase",
@@ -2568,8 +2569,8 @@ const paddingBottom = isVertical ? 120 : 88;
 
             <h1
               style={{
-                margin: isVertical ? "32px 0 0" : "24px 0 0",
-                fontSize: `${titleSize}px`,
+                margin: "32px 0 0",
+                fontSize: "86px",
                 lineHeight: 0.94,
                 fontWeight: 900,
                 letterSpacing: "-0.055em",
@@ -2583,7 +2584,7 @@ const paddingBottom = isVertical ? 120 : 88;
               style={{
                 margin: "14px 0 0",
                 color: "rgba(255,255,255,0.56)",
-                fontSize: `${metaSize}px`,
+                fontSize: "17px",
                 fontWeight: 500,
                 letterSpacing: "0.01em",
               }}
@@ -2599,8 +2600,8 @@ const paddingBottom = isVertical ? 120 : 88;
               border: "1px solid rgba(255,255,255,0.14)",
               background: "rgba(255,255,255,0.04)",
               color: isWin ? "#86EFAC" : "#FDA4AF",
-              padding: isVertical ? "12px 22px" : "10px 18px",
-              fontSize: isVertical ? "15px" : "14px",
+              padding: "12px 22px",
+              fontSize: "15px",
               fontWeight: 800,
               letterSpacing: "0.16em",
               textTransform: "uppercase",
@@ -2610,20 +2611,18 @@ const paddingBottom = isVertical ? 120 : 88;
           </div>
         </div>
 
-        {/* Metrics */}
         <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: isVertical ? "18px" : "16px",
-    marginTop: isVertical ? "34px" : "26px",
-  }}
->
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: "18px",
+            marginTop: "34px",
+          }}
+        >
           <ExportMetric
             label="Resultado"
             value={formatExportMoney(resultNumber)}
             color={accent}
-            compact={!isVertical}
           />
 
           <ExportMetric
@@ -2632,21 +2631,17 @@ const paddingBottom = isVertical ? 120 : 88;
               maximumFractionDigits: 2,
             })}`}
             color="#FFFFFF"
-            compact={!isVertical}
           />
-
-        
         </div>
 
-        {/* Setup */}
         <div
           style={{
-            marginTop: isVertical ? "20px" : "18px",
+            marginTop: "20px",
             border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: isVertical ? "28px" : "24px",
+            borderRadius: "28px",
             background:
               "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
-            padding: isVertical ? "24px 24px" : "20px 20px",
+            padding: "24px 24px",
             boxShadow: "0 16px 50px rgba(0,0,0,0.18)",
           }}
         >
@@ -2654,7 +2649,7 @@ const paddingBottom = isVertical ? 120 : 88;
             style={{
               margin: 0,
               color: "rgba(255,255,255,0.56)",
-              fontSize: isVertical ? "18px" : "15px",
+              fontSize: "18px",
               fontWeight: 500,
             }}
           >
@@ -2665,7 +2660,7 @@ const paddingBottom = isVertical ? 120 : 88;
             style={{
               margin: "12px 0 0",
               color: setupAccent,
-              fontSize: `${setupSize}px`,
+              fontSize: "34px",
               fontWeight: 900,
               lineHeight: 1.06,
               letterSpacing: "-0.03em",
@@ -2676,132 +2671,148 @@ const paddingBottom = isVertical ? 120 : 88;
           </p>
         </div>
 
-        {/* Chart heading */}
-        <div
-  style={{
-    marginTop: "26px",
-  }}
->
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: "14px",
-    }}
-  >
-    <p
-      style={{
-        margin: 0,
-        fontSize: "18px",
-        fontWeight: 800,
-        letterSpacing: "0.18em",
-        color: "rgba(255,255,255,0.58)",
-      }}
-    >
-      EXECUTION CHART
-    </p>
-
-    <div
-      style={{
-        width: "64px",
-        height: "1px",
-        background: "rgba(255,255,255,0.18)",
-      }}
-    />
-  </div>
-
-  <div
-    style={{
-      borderRadius: "34px",
-      border: "1px solid rgba(255,255,255,0.12)",
-      background:
-        "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
-      padding: "18px",
-      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
-    }}
-  >
-    <div
-      style={{
-        width: "100%",
-        minHeight: "840px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-        borderRadius: "24px",
-        background: "#0b1220",
-      }}
-    >
-      {selectedTrade.image ? (
-        <img
-  src={selectedTrade.image}
-  alt="Chart del trade"
-  style={{
-    width: "100%",
-    height: "100%",
-    objectFit: "contain",
-    objectPosition: "center",
-    display: "block",
-    background: "#090909",
-  }}
-/>
-      ) : (
         <div
           style={{
-            width: "100%",
-            height: "840px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "24px",
-            color: "rgba(255,255,255,0.42)",
-            fontSize: "22px",
-            fontWeight: 600,
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
+            marginTop: "26px",
           }}
         >
-          Este trade no tiene imagen guardada.
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "14px",
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+                fontSize: "18px",
+                fontWeight: 800,
+                letterSpacing: "0.18em",
+                color: "rgba(255,255,255,0.58)",
+              }}
+            >
+              EXECUTION CHART
+            </p>
+
+            <div
+              style={{
+                width: "64px",
+                height: "1px",
+                background: "rgba(255,255,255,0.18)",
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              borderRadius: "34px",
+              border: "1px solid rgba(255,255,255,0.12)",
+              background:
+                "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
+              padding: "18px",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                height: "840px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                borderRadius: "24px",
+                background: "#0b1220",
+              }}
+            >
+              {selectedTrade.image ? (
+                isTradeVideo(selectedTrade.image) ? (
+                  <video
+                    src={selectedTrade.image}
+                    muted
+                    playsInline
+                    controls
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      objectPosition: "center",
+                      display: "block",
+                      background: "#090909",
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={selectedTrade.image}
+                    alt="Chart del trade"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      objectPosition: "center",
+                      display: "block",
+                      background: "#090909",
+                    }}
+                  />
+                )
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "840px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "24px",
+                    color: "rgba(255,255,255,0.42)",
+                    fontSize: "22px",
+                    fontWeight: 600,
+                    background:
+                      "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
+                  }}
+                >
+                  Este trade no tiene imagen o video guardado.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      )}
-    </div>
-  </div>
-</div>
-        <div style={{ flex: 1 }} />
 
-        {/* Footer */}
+        <div style={{ height: "34px" }} />
+
         <div
-  style={{
-    marginTop: "26px",
-    paddingTop: "26px",
-    borderTop: "1px solid rgba(255,255,255,0.10)",
-    textAlign: "center",
-  }}
->
-  <p
-    style={{
-      margin: 0,
-      fontSize: "23px",
-      fontWeight: 500,
-      letterSpacing: "-0.03em",
-      color: "rgba(255,255,255,0.82)",
-    }}
-  >
-    Plan. Riesgo. Disciplina.
-  </p>
+          style={{
+            marginTop: "26px",
+            paddingTop: "26px",
+            borderTop: "1px solid rgba(255,255,255,0.10)",
+            textAlign: "center",
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontSize: "23px",
+              fontWeight: 500,
+              letterSpacing: "-0.03em",
+              color: "rgba(255,255,255,0.82)",
+            }}
+          >
+            Plan. Riesgo. Disciplina.
+          </p>
 
-  <p
-    style={{
-      margin: "10px 0 0",
-      fontSize: "15px",
-      fontWeight: 700,
-      color: "rgba(255,255,255,0.32)",
-    }}
-  >
-    {selectedTrade.account || "PA07"} · Life OS
-  </p>
-</div>
+          <p
+            style={{
+              margin: "10px 0 0",
+              fontSize: "15px",
+              fontWeight: 700,
+              color: "rgba(255,255,255,0.32)",
+            }}
+          >
+            {selectedTrade.account || "PA07"} · Life OS
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -2811,24 +2822,22 @@ function ExportMetric({
   label,
   value,
   color,
-  compact = false,
 }: {
   label: string;
   value: string;
   color: string;
-  compact?: boolean;
 }) {
-  const valueSize = getMetricValueSize(value, compact);
+  const valueSize = getMetricValueSize(value);
 
   return (
     <div
       style={{
         minWidth: 0,
         border: "1px solid rgba(255,255,255,0.12)",
-        borderRadius: compact ? "22px" : "26px",
+        borderRadius: "26px",
         background:
           "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025))",
-        padding: compact ? "18px 18px" : "24px 24px",
+        padding: "24px 24px",
         boxShadow: "0 14px 42px rgba(0,0,0,0.18)",
       }}
     >
@@ -2844,7 +2853,7 @@ function ExportMetric({
           style={{
             margin: 0,
             color: "rgba(255,255,255,0.56)",
-            fontSize: compact ? "15px" : "18px",
+            fontSize: "18px",
             fontWeight: 500,
           }}
         >
@@ -2853,8 +2862,8 @@ function ExportMetric({
 
         <div
           style={{
-            width: compact ? "10px" : "12px",
-            height: compact ? "10px" : "12px",
+            width: "12px",
+            height: "12px",
             borderRadius: "999px",
             background: color,
             boxShadow: `0 0 18px ${color}`,
@@ -2865,7 +2874,7 @@ function ExportMetric({
 
       <p
         style={{
-          margin: compact ? "18px 0 0" : "22px 0 0",
+          margin: "22px 0 0",
           color,
           fontSize: `${valueSize}px`,
           fontWeight: 900,
@@ -2879,4 +2888,319 @@ function ExportMetric({
       </p>
     </div>
   );
+}
+
+function drawRoundRect(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  const safeRadius = Math.min(radius, width / 2, height / 2);
+
+  context.beginPath();
+  context.moveTo(x + safeRadius, y);
+  context.arcTo(x + width, y, x + width, y + height, safeRadius);
+  context.arcTo(x + width, y + height, x, y + height, safeRadius);
+  context.arcTo(x, y + height, x, y, safeRadius);
+  context.arcTo(x, y, x + width, y, safeRadius);
+  context.closePath();
+}
+
+function drawWrappedText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines = 2
+) {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let currentLine = "";
+
+  words.forEach((word) => {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const metrics = context.measureText(testLine);
+
+    if (metrics.width > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  });
+
+  if (currentLine) lines.push(currentLine);
+
+  lines.slice(0, maxLines).forEach((line, index) => {
+    context.fillText(line, x, y + index * lineHeight);
+  });
+}
+
+function drawContainVideoFrame(
+  context: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+) {
+  const videoRatio = video.videoWidth / video.videoHeight;
+  const boxRatio = width / height;
+
+  let drawWidth = width;
+  let drawHeight = height;
+  let drawX = x;
+  let drawY = y;
+
+  if (videoRatio > boxRatio) {
+    drawHeight = width / videoRatio;
+    drawY = y + (height - drawHeight) / 2;
+  } else {
+    drawWidth = height * videoRatio;
+    drawX = x + (width - drawWidth) / 2;
+  }
+
+  context.drawImage(video, drawX, drawY, drawWidth, drawHeight);
+}
+
+async function waitForVideoMetadata(video: HTMLVideoElement) {
+  if (video.readyState >= 1) return;
+
+  await new Promise<void>((resolve, reject) => {
+    video.onloadedmetadata = () => resolve();
+    video.onerror = () => reject(new Error("No se pudo cargar el video."));
+  });
+}
+
+async function exportTradePostVideo9x16(trade: Trade, fileName: string) {
+  if (typeof window === "undefined") return;
+
+  if (!("MediaRecorder" in window)) {
+    throw new Error("Tu navegador no soporta MediaRecorder.");
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 1080;
+  canvas.height = 1920;
+
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("No se pudo crear el canvas del video.");
+
+  const video = document.createElement("video");
+  video.src = trade.image || "";
+  video.muted = true;
+  video.playsInline = true;
+  video.crossOrigin = "anonymous";
+
+  await waitForVideoMetadata(video);
+
+  const duration = Math.min(Math.max(video.duration || 6, 3), 30);
+  const stream = canvas.captureStream(30);
+  const supportedType = [
+    "video/mp4;codecs=h264",
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+  ].find((type) => MediaRecorder.isTypeSupported(type));
+
+  const recorder = new MediaRecorder(
+    stream,
+    supportedType ? { mimeType: supportedType } : undefined
+  );
+
+  const chunks: BlobPart[] = [];
+
+  recorder.ondataavailable = (event) => {
+    if (event.data.size > 0) chunks.push(event.data);
+  };
+
+  const done = new Promise<Blob>((resolve) => {
+    recorder.onstop = () => {
+      const mimeType = recorder.mimeType || "video/webm";
+      resolve(new Blob(chunks, { type: mimeType }));
+    };
+  });
+
+  function drawFrame() {
+    const resultNumber = Number(trade.result || 0);
+    const riskNumber = Number(trade.risk || 0);
+    const isWin = resultNumber >= 0;
+    const accent = isWin ? "#6EE7B7" : "#FB7185";
+    const setupAccent = "#FACC15";
+
+    const gradient = context.createLinearGradient(0, 0, 0, 1920);
+    gradient.addColorStop(0, "#020617");
+    gradient.addColorStop(0.34, "#020617");
+    gradient.addColorStop(1, "#000000");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 1080, 1920);
+
+    const glow = context.createRadialGradient(1080, 340, 0, 1080, 340, 680);
+    glow.addColorStop(0, "rgba(45,212,191,0.18)");
+    glow.addColorStop(1, "rgba(45,212,191,0)");
+    context.fillStyle = glow;
+    context.fillRect(0, 0, 1080, 1920);
+
+    context.fillStyle = "#A7F3D0";
+    context.font = "800 18px Arial";
+    context.letterSpacing = "3px";
+    context.fillText("LIFE OS TRADING JOURNAL", 64, 128);
+
+    context.fillStyle = "#FFFFFF";
+    context.font = "900 86px Arial";
+    context.letterSpacing = "-4px";
+    context.fillText("Trade Recap", 64, 244);
+
+    context.fillStyle = "rgba(255,255,255,0.56)";
+    context.font = "500 17px Arial";
+    context.letterSpacing = "0px";
+    context.fillText(
+      `${trade.date} · ${trade.asset || "MNQ"} · ${trade.direction || "Long"}`,
+      64,
+      278
+    );
+
+    drawRoundRect(context, 884, 102, 132, 48, 24);
+    context.fillStyle = "rgba(255,255,255,0.04)";
+    context.fill();
+    context.strokeStyle = "rgba(255,255,255,0.14)";
+    context.stroke();
+    context.fillStyle = isWin ? "#86EFAC" : "#FDA4AF";
+    context.font = "800 15px Arial";
+    context.textAlign = "center";
+    context.fillText(String(trade.direction || "Trade").toUpperCase(), 950, 132);
+    context.textAlign = "left";
+
+    drawCanvasMetric(context, 64, 330, 460, 132, "Resultado", formatExportMoney(resultNumber), accent);
+    drawCanvasMetric(
+      context,
+      542,
+      330,
+      474,
+      132,
+      "Riesgo",
+      `$${riskNumber.toLocaleString("en-US", { maximumFractionDigits: 2 })}`,
+      "#FFFFFF"
+    );
+
+    drawRoundRect(context, 64, 484, 952, 122, 28);
+    context.fillStyle = "rgba(255,255,255,0.035)";
+    context.fill();
+    context.strokeStyle = "rgba(255,255,255,0.12)";
+    context.stroke();
+    context.fillStyle = "rgba(255,255,255,0.56)";
+    context.font = "500 18px Arial";
+    context.fillText("Setup", 88, 526);
+    context.fillStyle = setupAccent;
+    context.font = "900 34px Arial";
+    drawWrappedText(context, trade.setup || "Sin setup registrado", 88, 568, 850, 38, 1);
+
+    context.fillStyle = "rgba(255,255,255,0.58)";
+    context.font = "800 18px Arial";
+    context.letterSpacing = "3px";
+    context.fillText("EXECUTION CHART", 64, 684);
+    context.letterSpacing = "0px";
+    context.fillStyle = "rgba(255,255,255,0.18)";
+    context.fillRect(952, 672, 64, 1);
+
+    drawRoundRect(context, 64, 704, 952, 876, 34);
+    context.fillStyle = "rgba(255,255,255,0.035)";
+    context.fill();
+    context.strokeStyle = "rgba(255,255,255,0.12)";
+    context.stroke();
+
+    drawRoundRect(context, 82, 722, 916, 840, 24);
+    context.fillStyle = "#0b1220";
+    context.fill();
+    context.save();
+    drawRoundRect(context, 82, 722, 916, 840, 24);
+    context.clip();
+    drawContainVideoFrame(context, video, 82, 722, 916, 840);
+    context.restore();
+
+    context.fillStyle = "rgba(255,255,255,0.10)";
+    context.fillRect(64, 1712, 952, 1);
+
+    context.fillStyle = "rgba(255,255,255,0.82)";
+    context.font = "500 23px Arial";
+    context.textAlign = "center";
+    context.fillText("Plan. Riesgo. Disciplina.", 540, 1762);
+
+    context.fillStyle = "rgba(255,255,255,0.32)";
+    context.font = "700 15px Arial";
+    context.fillText(`${trade.account || "Cuenta"} · Life OS`, 540, 1794);
+    context.textAlign = "left";
+  }
+
+  recorder.start();
+  video.currentTime = 0;
+  await video.play();
+
+  const startedAt = performance.now();
+
+  await new Promise<void>((resolve) => {
+    function frame() {
+      drawFrame();
+
+      const elapsedSeconds = (performance.now() - startedAt) / 1000;
+
+      if (elapsedSeconds >= duration || video.ended) {
+        resolve();
+        return;
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    frame();
+  });
+
+  video.pause();
+  recorder.stop();
+
+  const blob = await done;
+  const extension = blob.type.includes("mp4") ? "mp4" : "webm";
+  const url = URL.createObjectURL(blob);
+  const downloadLink = document.createElement("a");
+
+  downloadLink.href = url;
+  downloadLink.download = `${sanitizeFileName(fileName) || "lifeos-video"}.${extension}`;
+  downloadLink.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function drawCanvasMetric(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  label: string,
+  value: string,
+  color: string
+) {
+  drawRoundRect(context, x, y, width, height, 26);
+  context.fillStyle = "rgba(255,255,255,0.035)";
+  context.fill();
+  context.strokeStyle = "rgba(255,255,255,0.12)";
+  context.stroke();
+
+  context.fillStyle = "rgba(255,255,255,0.56)";
+  context.font = "500 18px Arial";
+  context.fillText(label, x + 24, y + 44);
+
+  context.fillStyle = color;
+  context.font = "900 58px Arial";
+  context.fillText(value, x + 24, y + 104);
+
+  context.beginPath();
+  context.arc(x + width - 24, y + 30, 6, 0, Math.PI * 2);
+  context.fillStyle = color;
+  context.fill();
 }

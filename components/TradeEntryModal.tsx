@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { ImagePlus, Plus, X } from "lucide-react";
+import { FileVideo, ImagePlus, Plus, X } from "lucide-react";
 
 export type Trade = {
   id: string;
@@ -68,8 +68,12 @@ export function TradeEntryModal({
     }));
   }
 
-  function readImageFile(file: File) {
-    if (!file.type.startsWith("image/")) return;
+  function isSupportedMedia(file: File) {
+    return file.type.startsWith("image/") || file.type.startsWith("video/");
+  }
+
+  function readMediaFile(file: File) {
+    if (!isSupportedMedia(file)) return;
 
     const reader = new FileReader();
 
@@ -80,14 +84,18 @@ export function TradeEntryModal({
     reader.readAsDataURL(file);
   }
 
+  function isVideoMedia(value: string) {
+    return value.toLowerCase().startsWith("data:video");
+  }
+
   function handlePaste(event: ClipboardEvent<HTMLDivElement>) {
     const file = Array.from(event.clipboardData.files).find((item) =>
-      item.type.startsWith("image/")
+      item.type.startsWith("image/") || item.type.startsWith("video/")
     );
 
     if (file) {
       event.preventDefault();
-      readImageFile(file);
+      readMediaFile(file);
     }
   }
 
@@ -95,7 +103,7 @@ export function TradeEntryModal({
     const file = event.target.files?.[0];
 
     if (file) {
-      readImageFile(file);
+      readMediaFile(file);
     }
   }
 
@@ -295,7 +303,7 @@ export function TradeEntryModal({
 
             <div className="mt-5">
               <label className="mb-2 block text-sm text-white/50">
-                Imagen del trade
+                Imagen / video del trade
               </label>
 
               <div
@@ -304,21 +312,31 @@ export function TradeEntryModal({
                 className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/40 p-5 text-center outline-none transition focus:border-emerald-400"
               >
                 {form.image ? (
-                  <img
-                    src={form.image}
-                    alt="Captura del trade"
-                    className="max-h-[360px] w-full rounded-2xl object-contain"
-                  />
+                  isVideoMedia(form.image) ? (
+                    <video
+                      src={form.image}
+                      controls
+                      playsInline
+                      className="max-h-[360px] w-full rounded-2xl bg-black object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={form.image}
+                      alt="Captura del trade"
+                      className="max-h-[360px] w-full rounded-2xl object-contain"
+                    />
+                  )
                 ) : (
                   <>
-                    <div className="mb-4 rounded-full bg-white/10 p-4">
+                    <div className="mb-4 flex items-center gap-3 rounded-full bg-white/10 px-5 py-4">
                       <ImagePlus className="h-6 w-6 text-white/60" />
+                      <FileVideo className="h-6 w-6 text-white/60" />
                     </div>
                     <p className="font-semibold text-white/80">
-                      Pega aquí tu captura con Ctrl + V
+Pega aquí tu captura o video con Ctrl + V
                     </p>
                     <p className="mt-2 text-sm text-white/40">
-                      También puedes subir una imagen desde tu PC.
+También puedes subir una imagen o video desde tu PC.
                     </p>
                   </>
                 )}
@@ -327,7 +345,7 @@ export function TradeEntryModal({
                   Seleccionar archivo
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     onChange={handleImageUpload}
                     className="hidden"
                   />
